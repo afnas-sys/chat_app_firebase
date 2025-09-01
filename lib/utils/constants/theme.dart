@@ -4,7 +4,7 @@ import 'package:support_chat/utils/constants/app_colors.dart';
 
 ThemeData theme = ThemeData(
   colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryColor),
-  scaffoldBackgroundColor: Colors.transparent,
+  //  scaffoldBackgroundColor: Colors.transparent,
   iconTheme: IconThemeData(
     color: AppColors.primaryColor,
     size: 20,
@@ -49,15 +49,57 @@ extension CustomTextStyle on TextTheme {
     fontWeight: FontWeight.w500,
     color: AppColors.primaryColor,
   );
+
+  TextStyle get titleMediumPrimary => GoogleFonts.inter(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: AppColors.primaryColor,
+  );
   TextStyle get titleSmallPrimary => GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.w400,
     color: AppColors.secondaryColor,
+  );
+  TextStyle get titleSmallSecondary => GoogleFonts.inter(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    color: AppColors.thirteenthColor,
   );
 
   TextStyle get bodyMediumPrimary => GoogleFonts.inter(
     fontSize: 14,
     fontWeight: FontWeight.w400,
     color: AppColors.primaryColor,
+  );
+  TextStyle get bodyMediumSecondary => GoogleFonts.inter(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.eighthColor,
+  );
+
+  TextStyle get bodySmallPrimary => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.primaryColor,
+  );
+  TextStyle get bodySmallSecondary => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.tertiaryColor,
+  );
+  TextStyle get bodySmallTertiary => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.sixthColor,
+  );
+  TextStyle get bodySmallFourth => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.seventhColor,
+  );
+  TextStyle get bodySmallFifth => GoogleFonts.inter(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: AppColors.twelfthColor,
   );
 }

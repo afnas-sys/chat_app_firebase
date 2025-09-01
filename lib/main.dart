@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Support Chat',
       theme: theme,
       onGenerateRoute: AppRouter.generateRoute,
-      initialRoute: RoutesNames.loginScreen,
+      initialRoute: RoutesNames.bottomBar,
 
       // home: Stack(
       //   children: [
