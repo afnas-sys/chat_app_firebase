@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:support_chat/features/chat_screen/widget/custom_dialog.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
+import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 
 class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
@@ -79,12 +81,42 @@ class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
                   if (value == 'details') {
                     showDetailSheet(context, userData);
                   } else if (value == 'block') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('User blocked')),
+                    showDialog(
+                      context: context,
+                      builder: (context) => CustomDialog(
+                        title: AppText.blockUserDialogTitle,
+                        content: AppText.blockUserDialogContent,
+                        button1Text: AppText.dialogCancel,
+                        button2Text: AppText.blockUserDialogBlock,
+                        button1Action: () {
+                          Navigator.pop(context); // close dialog
+                        },
+                        button2Action: () {
+                          Navigator.pop(context); // close dialog
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('User blocked')),
+                          );
+                        },
+                      ),
                     );
                   } else if (value == 'delete') {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Chat deleted')),
+                    showDialog(
+                      context: context,
+                      builder: (context) => CustomDialog(
+                        title: AppText.deleteDialogTitle,
+                        content: AppText.deleteDialogContent,
+                        button1Text: AppText.dialogCancel,
+                        button2Text: AppText.deleteDialogDelete,
+                        button1Action: () {
+                          Navigator.pop(context); // close dialog
+                        },
+                        button2Action: () {
+                          Navigator.pop(context); // close dialog
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('User blocked')),
+                          );
+                        },
+                      ),
                     );
                   }
                 },
@@ -148,6 +180,7 @@ class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
+          backgroundColor: AppColors.primaryColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),

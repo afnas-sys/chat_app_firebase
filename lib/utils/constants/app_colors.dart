@@ -16,4 +16,5 @@ class AppColors {
   static final eleventhColor = Color(0XFF010101).withOpacity(0.2);
   static final twelfthColor = Color(0XFF010101).withOpacity(0.5);
   static final thirteenthColor = Color(0XFF010101);
+  static final fourteenthColor = Color(0XFF000000).withOpacity(0.5);
 }

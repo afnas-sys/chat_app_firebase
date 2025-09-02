@@ -55,6 +55,11 @@ extension CustomTextStyle on TextTheme {
     fontWeight: FontWeight.w500,
     color: AppColors.primaryColor,
   );
+  TextStyle get titleMediumSecondary => GoogleFonts.inter(
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: AppColors.thirteenthColor,
+  );
   TextStyle get titleSmallPrimary => GoogleFonts.inter(
     fontSize: 16,
     fontWeight: FontWeight.w400,
@@ -75,6 +80,11 @@ extension CustomTextStyle on TextTheme {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AppColors.eighthColor,
+  );
+  TextStyle get bodyMediumThird => GoogleFonts.inter(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.twelfthColor,
   );
 
   TextStyle get bodySmallPrimary => GoogleFonts.inter(
