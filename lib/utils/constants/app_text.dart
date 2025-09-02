@@ -16,4 +16,8 @@ class AppText {
   static const String deleteDialogContent =
       'Are you sure you want to delete this chat history? This action cannot be undone.';
   static const String deleteDialogDelete = 'Delete';
+
+  //logout sheet
+  static const String logoutDialogTitle = 'Logout';
+  static const String logoutDialogContent = 'Are you sure you want to log out?';
 }

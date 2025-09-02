@@ -14,6 +14,7 @@ class CustomTextFormField extends StatelessWidget {
   final EdgeInsetsGeometry contentPadding;
   final Widget? prefixWidget;
   final Widget? suffixWidget;
+  final TextEditingController? controller;
 
   const CustomTextFormField({
     super.key,
@@ -29,6 +30,7 @@ class CustomTextFormField extends StatelessWidget {
     this.contentPadding = const EdgeInsets.all(1),
     this.prefixWidget,
     this.suffixWidget,
+    this.controller,
   });
 
   @override
@@ -39,6 +41,7 @@ class CustomTextFormField extends StatelessWidget {
         height: height,
         width: width,
         child: TextFormField(
+          controller: controller,
           cursorColor: AppColors.primaryColor,
           style: TextStyle(color: textColor, fontSize: textSize),
           decoration: InputDecoration(

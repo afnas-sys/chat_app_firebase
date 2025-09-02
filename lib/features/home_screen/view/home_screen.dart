@@ -17,6 +17,102 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  final List<Map<String, dynamic>> _allChats = [
+    {
+      "user": "Alice",
+      "image": AppImage.user1,
+      "message": "Hey",
+      'time': '2 min Ago',
+      'msgCount': '3',
+      'isOnline': 'Online',
+    },
+    {
+      "user": "Bob",
+      "image": AppImage.user2,
+      "message": "How are you",
+      'time': '2 min Ago',
+      'msgCount': '3',
+      'isOnline': 'Offline',
+    },
+    {
+      "user": "Charlie",
+      "image": AppImage.user3,
+      "message": "Can we talk right now",
+      'time': '2 min Ago',
+      'isOnline': 'Offline',
+    },
+    {
+      "user": "Diana",
+      "image": AppImage.user4,
+      "message": "10000 Received",
+      'time': '2 min Ago',
+      'isOnline': 'Online',
+    },
+    {
+      "user": "Eve",
+      "image": AppImage.user5,
+      "message": "Are you okay",
+      'time': '2 min Ago',
+      'isOnline': 'Offline',
+    },
+    {
+      "user": "Frank",
+      "image": AppImage.user6,
+      "message": "Congrats",
+      'time': '2 min Ago',
+      'isOnline': 'Online',
+    },
+    {
+      "user": "John",
+      "image": AppImage.user7,
+      "message": "I will see you soon",
+      'time': '2 min Ago',
+      'isOnline': 'Online',
+    },
+    {
+      "user": "Charlie",
+      "image": AppImage.user3,
+      "message": "Can we talk right now",
+      'time': '2 min Ago',
+      'isOnline': 'Offline',
+    },
+    {
+      "user": "Diana",
+      "image": AppImage.user4,
+      "message": "10000 Received",
+      'time': '2 min Ago',
+      'isOnline': 'Online',
+    },
+  ];
+
+  List<Map<String, dynamic>> _filteredChats = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredChats = _allChats; // initially show all
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredChats = _allChats.where((chat) {
+        final name = chat['user'].toString().toLowerCase();
+        final message = chat['message'].toString().toLowerCase();
+        return name.contains(query) || message.contains(query);
+      }).toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   AppText.chatTitle,
                   style: Theme.of(context).textTheme.titleLargePrimary,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Container(
                   decoration: BoxDecoration(
                     color: AppColors.fourthColor,
@@ -47,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     border: Border.all(color: AppColors.tertiaryColor),
                   ),
                   child: CustomTextFormField(
+                    controller: _searchController,
                     textColor: AppColors.primaryColor,
                     prefixWidget: const Icon(
                       FontAwesomeIcons.search,
@@ -56,10 +153,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     hintColor: AppColors.tertiaryColor,
                   ),
                 ),
-
-                SizedBox(height: 10),
-                //chat tile
-                Expanded(child: ChatTile()),
+                const SizedBox(height: 10),
+                Expanded(child: ChatTile(datas: _filteredChats)),
               ],
             ),
           ),

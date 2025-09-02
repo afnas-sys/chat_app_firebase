@@ -22,15 +22,15 @@ class LogoutScreen extends StatelessWidget {
         ),
 
         child: CustomDialog(
-          title: 'Logout',
-          content: 'are you sure you want to log out?',
+          title: AppText.logoutDialogTitle,
+          content: AppText.logoutDialogContent,
           button1Text: AppText.dialogCancel,
-          button2Text: 'Logout',
+          button2Text: AppText.logoutDialogTitle,
           button2Icon: FontAwesomeIcons.rightFromBracket,
           button1Action: () {
             Navigator.pushNamedAndRemoveUntil(
               context,
-              RoutesNames.homeScreen,
+              RoutesNames.bottomBar,
               (_) => false,
             );
           },
