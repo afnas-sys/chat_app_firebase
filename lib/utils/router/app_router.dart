@@ -22,7 +22,7 @@ class AppRouter {
         );
       case RoutesNames.homeScreen:
         return _buildPageTransition(
-          const HomeScreen(),
+          HomeScreen(),
           settings,
           PageTransitionType.fade,
         );

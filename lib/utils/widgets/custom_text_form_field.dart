@@ -15,6 +15,7 @@ class CustomTextFormField extends StatelessWidget {
   final Widget? prefixWidget;
   final Widget? suffixWidget;
   final TextEditingController? controller;
+  final ValueChanged<String>? onChanged;
 
   const CustomTextFormField({
     super.key,
@@ -31,6 +32,7 @@ class CustomTextFormField extends StatelessWidget {
     this.prefixWidget,
     this.suffixWidget,
     this.controller,
+    this.onChanged,
   });
 
   @override
@@ -44,6 +46,7 @@ class CustomTextFormField extends StatelessWidget {
           controller: controller,
           cursorColor: AppColors.primaryColor,
           style: TextStyle(color: textColor, fontSize: textSize),
+          onChanged: onChanged,
           decoration: InputDecoration(
             filled: true,
             fillColor: backgroundColor,

@@ -5,7 +5,8 @@ import 'package:support_chat/utils/constants/theme.dart';
 
 class ChatTile extends StatelessWidget {
   final List<Map<String, dynamic>> datas;
-  const ChatTile({super.key, required this.datas});
+  final VoidCallback? onChatClosed;
+  const ChatTile({super.key, required this.datas, required this.onChatClosed});
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,9 @@ class ChatTile extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (index) => ChatScreen(userData: data)),
-            );
+            ).then((_) {
+              onChatClosed!();
+            });
           },
           child: ListTile(
             leading: ClipRRect(

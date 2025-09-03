@@ -1,88 +1,25 @@
 // ignore_for_file: deprecated_member_use
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/features/call_screen/call_tile/call_tile.dart';
+import 'package:support_chat/providers/calls_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 import 'package:support_chat/utils/widgets/custom_text_form_field.dart';
 
-class CallScreen extends StatefulWidget {
+class CallScreen extends ConsumerStatefulWidget {
   const CallScreen({super.key});
 
   @override
-  State<CallScreen> createState() => _CallScreenState();
+  ConsumerState<CallScreen> createState() => _CallScreenState();
 }
 
-class _CallScreenState extends State<CallScreen> {
+class _CallScreenState extends ConsumerState<CallScreen> {
   final TextEditingController _searchController = TextEditingController();
-
-  final List<Map<String, dynamic>> _allCalls = [
-    {
-      "user": "Alice",
-      "image": AppImage.user1,
-      'icon': Icons.arrow_outward,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': '12m 45s',
-    },
-    {
-      "user": "Bob",
-      "image": AppImage.user2,
-      'icon': Icons.subdirectory_arrow_left_rounded,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': 'Missed',
-    },
-    {
-      "user": "Charlie",
-      "image": AppImage.user3,
-      'icon': Icons.arrow_outward,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': 'Missed',
-    },
-    {
-      "user": "Diana",
-      "image": AppImage.user4,
-      'icon': Icons.arrow_outward,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': 'Missed',
-    },
-    {
-      "user": "Eve",
-      "image": AppImage.user5,
-      'icon': Icons.arrow_outward,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': 'Missed',
-    },
-    {
-      "user": "Frank",
-      "image": AppImage.user6,
-      'icon': Icons.subdirectory_arrow_left_rounded,
-      "date": "30 Aug 2025, 10:15 AM",
-      'status': 'Missed',
-    },
-  ];
-
-  List<Map<String, dynamic>> _filteredCalls = [];
-
-  @override
-  void initState() {
-    super.initState();
-    _filteredCalls = _allCalls; // show all initially
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  void _onSearchChanged() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredCalls = _allCalls.where((call) {
-        final name = call['user'].toString().toLowerCase();
-        final status = call['status'].toString().toLowerCase();
-        return name.contains(query) || status.contains(query);
-      }).toList();
-    });
-  }
 
   @override
   void dispose() {
@@ -92,6 +29,7 @@ class _CallScreenState extends State<CallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredCalls = ref.watch(filteredCallsProvider);
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -145,13 +83,20 @@ class _CallScreenState extends State<CallScreen> {
                     ),
                     hintText: 'Search...',
                     hintColor: AppColors.tertiaryColor,
+                    onChanged: (value) {
+                      ref.read(searchProvider.notifier).state = value;
+                    },
                   ),
                 ),
 
                 const SizedBox(height: 10),
 
                 // Calls list
-                Expanded(child: CallTile(datas: _filteredCalls)),
+                Expanded(
+                  child: filteredCalls.isEmpty
+                      ? Center(child: Text('No Calls found'))
+                      : CallTile(datas: filteredCalls),
+                ),
               ],
             ),
           ),

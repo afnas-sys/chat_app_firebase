@@ -4,6 +4,7 @@ import 'package:support_chat/features/chat_screen/widget/custom_dialog.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
+import 'package:support_chat/utils/widgets/custom_elevated_button.dart';
 
 class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
   final Map<String, dynamic> userData;
@@ -330,6 +331,22 @@ class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                         ),
                       ],
+                    ),
+                    SizedBox(height: 34),
+                    CustomElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      width: double.infinity,
+                      hasBorder: true,
+                      borderColor: AppColors.twelfthColor,
+                      height: 48,
+                      borderRadius: 30,
+                      backgroundColor: AppColors.primaryColor,
+                      child: Text(
+                        'Back',
+                        style: Theme.of(context).textTheme.bodyMediumSecondary,
+                      ),
                     ),
                   ],
                 ),
