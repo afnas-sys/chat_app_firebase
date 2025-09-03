@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:support_chat/features/chat_screen.dart';
+import 'package:support_chat/features/call_screen/view/call_screen.dart';
+import 'package:support_chat/features/home_screen/view/home_screen.dart';
+import 'package:support_chat/features/logout_screen/logout_screen.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
 class CustomBottomBar extends StatefulWidget {
@@ -12,7 +14,7 @@ class CustomBottomBar extends StatefulWidget {
 
 class _CustomBottomBarState extends State<CustomBottomBar> {
   int _currentIndex = 0;
-  List<Widget> bodys = [ChatScreen(), ChatScreen(), ChatScreen()];
+  List<Widget> bodys = [HomeScreen(), CallScreen(), LogoutScreen()];
   @override
   Widget build(BuildContext context) {
     return Scaffold(

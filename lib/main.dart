@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:support_chat/utils/router/app_router.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ProviderScope(child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -17,24 +18,7 @@ class MyApp extends StatelessWidget {
       title: 'Support Chat',
       theme: theme,
       onGenerateRoute: AppRouter.generateRoute,
-      initialRoute: RoutesNames.loginScreen,
-
-      // home: Stack(
-      //   children: [
-      //     Container(
-      //       decoration: const BoxDecoration(
-      //         image: DecorationImage(
-      //           image: AssetImage('assets/images/bg_image.png'),
-      //           fit: BoxFit.cover,
-      //         ),
-      //       ),
-      //     ),
-      //     Navigator(
-      //       onGenerateRoute: AppRouter.generateRoute,
-      //       initialRoute: RoutesNames.loginScreen,
-      //     ),
-      //   ],
-      // ),
+      initialRoute: RoutesNames.bottomBar,
     );
   }
 }

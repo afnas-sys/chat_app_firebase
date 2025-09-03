@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
-import 'package:support_chat/features/chat_screen.dart';
-import 'package:support_chat/features/login_screen.dart';
+import 'package:support_chat/features/home_screen/view/home_screen.dart';
+import 'package:support_chat/features/login_screen/login_screen.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/widgets/custom_bottom_bar.dart';
 
@@ -20,9 +20,9 @@ class AppRouter {
           settings,
           PageTransitionType.fade,
         );
-      case RoutesNames.chatScreen:
+      case RoutesNames.homeScreen:
         return _buildPageTransition(
-          const ChatScreen(),
+          HomeScreen(),
           settings,
           PageTransitionType.fade,
         );
