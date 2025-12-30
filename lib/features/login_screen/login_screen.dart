@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
-import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/widgets/custom_elevated_button.dart';

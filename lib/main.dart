@@ -48,7 +48,7 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Support Chat',
+      title: 'ChatApp',
       theme: theme,
       onGenerateRoute: AppRouter.generateRoute,
       home: authState.when(

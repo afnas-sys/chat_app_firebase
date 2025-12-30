@@ -25,6 +25,7 @@ class ChatService {
       'senderId': currentUserId,
       'receiverId': receiverId,
       'createdAt': FieldValue.serverTimestamp(),
+      'status': 'sent', // Initial status: Single tick
       'user': {
         'id': currentUserId,
         'firstName': message.user.firstName ?? '',
@@ -54,12 +55,65 @@ class ChatService {
     final String chatId = getChatId(currentUserId, receiverId);
 
     try {
+      // 1. Reset unread count
       await _firestore.collection('chats').doc(chatId).update({
         'unreadCount_$currentUserId': 0,
       });
+
+      // 2. Update all messages from the other user to 'seen'
+      try {
+        final unreadMessages = await _firestore
+            .collection('chats')
+            .doc(chatId)
+            .collection('messages')
+            .where('senderId', isEqualTo: receiverId)
+            .where('status', isNotEqualTo: 'seen')
+            .get();
+
+        if (unreadMessages.docs.isNotEmpty) {
+          final batch = _firestore.batch();
+          for (var doc in unreadMessages.docs) {
+            batch.update(doc.reference, {'status': 'seen'});
+          }
+          await batch.commit();
+        }
+      } catch (e) {
+        print(
+          'DEBUG: Seen status update failed (likely missing index or permission): $e',
+        );
+      }
     } catch (e) {
-      // If document doesn't exist yet, it's fine
-      print('DEBUG: markAsRead error (safe if new chat): $e');
+      print('DEBUG: markAsRead main error: $e');
+    }
+  }
+
+  // Mark messages as delivered (Double Grey Tick)
+  Future<void> markAsDelivered() async {
+    final String currentUserId = _auth.currentUser?.uid ?? '';
+    if (currentUserId.isEmpty) return;
+
+    try {
+      // PRO TIP: Collection Group queries find ALL 'messages' subcollections at once
+      final messagesSnapshot = await _firestore
+          .collectionGroup('messages')
+          .where('receiverId', isEqualTo: currentUserId)
+          .where('status', isEqualTo: 'sent')
+          .get();
+
+      if (messagesSnapshot.docs.isEmpty) return;
+
+      final batch = _firestore.batch();
+      for (var doc in messagesSnapshot.docs) {
+        batch.update(doc.reference, {'status': 'delivered'});
+      }
+
+      await batch.commit();
+      print(
+        'DEBUG: Successfully marked ${messagesSnapshot.docs.length} messages as delivered',
+      );
+    } catch (e) {
+      // If you see an error here, check if you need to create a Collection Group index in Firebase Console
+      print('DEBUG: markAsDelivered error: $e');
     }
   }
 
@@ -77,6 +131,21 @@ class ChatService {
         .map((snapshot) {
           return snapshot.docs.map((doc) {
             final data = doc.data();
+
+            // Map Firestore status to MessageStatus
+            MessageStatus status = MessageStatus.none;
+            if (data['senderId'] == currentUserId) {
+              final statusStr = data['status'] ?? 'sent';
+              if (statusStr == 'seen') {
+                status = MessageStatus.read;
+              } else if (statusStr == 'delivered') {
+                status = MessageStatus.received;
+              } else {
+                status = MessageStatus
+                    .pending; // We'll use pending for sent (single tick)
+              }
+            }
+
             return ChatMessage(
               text: data['text'] ?? '',
               user: ChatUser(
@@ -86,6 +155,7 @@ class ChatService {
               ),
               createdAt:
                   (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+              status: status,
             );
           }).toList();
         });
@@ -133,6 +203,15 @@ class ChatService {
               'unreadCount': data['unreadCount_$currentUserId'] ?? 0,
             });
           }
+
+          // Sort client-side to avoid requiring a Firestore composite index
+          chats.sort((a, b) {
+            final aTime =
+                (a['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime(0);
+            final bTime =
+                (b['lastMessageTime'] as Timestamp?)?.toDate() ?? DateTime(0);
+            return bTime.compareTo(aTime); // Latest first
+          });
 
           return chats;
         });

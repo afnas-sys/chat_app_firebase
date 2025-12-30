@@ -23,9 +23,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Mark messages as read when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final receiverId = widget.userData['uid'];
+      final chatService = ref.read(chatServiceProvider);
       if (receiverId != null) {
-        ref.read(chatServiceProvider).markAsRead(receiverId);
+        chatService.markAsRead(receiverId);
       }
+      chatService.markAsDelivered();
     });
   }
 

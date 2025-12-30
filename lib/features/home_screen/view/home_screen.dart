@@ -20,8 +20,34 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    // Mark messages as delivered when app opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatServiceProvider).markAsDelivered();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Trigger delivery update when user comes back to the app
+      ref.read(chatServiceProvider).markAsDelivered();
+    }
+  }
 
   void _clearSearch() {
     _searchController.clear();
@@ -30,6 +56,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Proactively mark new messages as delivered when the chat list updates
+    ref.listen(userChatsProvider, (previous, next) {
+      if (next is AsyncData) {
+        ref.read(chatServiceProvider).markAsDelivered();
+      }
+    });
+
     final searchResults = ref.watch(usersSearchProvider);
     final searchQuery = ref.watch(chatSearchProvider);
     final currentUserData = ref.watch(currentUserDataProvider);
