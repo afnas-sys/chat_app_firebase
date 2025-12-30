@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
 import 'package:support_chat/features/login_screen/login_screen.dart';
+import 'package:support_chat/features/register_screen/register_screen.dart';
+import 'package:support_chat/features/forgot_password_screen/forgot_password_screen.dart';
+import 'package:support_chat/features/home_screen/view/profile_screen.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/widgets/custom_bottom_bar.dart';
 
@@ -14,6 +17,18 @@ class AppRouter {
           settings,
           PageTransitionType.fade,
         );
+      case RoutesNames.registerScreen:
+        return _buildPageTransition(
+          const RegisterScreen(),
+          settings,
+          PageTransitionType.fade,
+        );
+      case RoutesNames.forgotPasswordScreen:
+        return _buildPageTransition(
+          const ForgotPasswordScreen(),
+          settings,
+          PageTransitionType.fade,
+        );
       case RoutesNames.bottomBar:
         return _buildPageTransition(
           const CustomBottomBar(),
@@ -22,7 +37,13 @@ class AppRouter {
         );
       case RoutesNames.homeScreen:
         return _buildPageTransition(
-          HomeScreen(),
+          const HomeScreen(),
+          settings,
+          PageTransitionType.fade,
+        );
+      case RoutesNames.profileScreen:
+        return _buildPageTransition(
+          const ProfileScreen(),
           settings,
           PageTransitionType.fade,
         );
@@ -47,5 +68,24 @@ class AppRouter {
       reverseDuration: const Duration(milliseconds: 300),
       settings: settings,
     );
+  }
+
+  static Widget getWidgetForRoute(String routeName) {
+    switch (routeName) {
+      case RoutesNames.loginScreen:
+        return const LoginScreen();
+      case RoutesNames.registerScreen:
+        return const RegisterScreen();
+      case RoutesNames.forgotPasswordScreen:
+        return const ForgotPasswordScreen();
+      case RoutesNames.bottomBar:
+        return const CustomBottomBar();
+      case RoutesNames.homeScreen:
+        return const HomeScreen();
+      case RoutesNames.profileScreen:
+        return const ProfileScreen();
+      default:
+        return const LoginScreen();
+    }
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/features/chat_screen/widget/custom_dialog.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
+import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 import 'package:support_chat/utils/widgets/custom_elevated_button.dart';
@@ -37,7 +38,7 @@ class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
             child: SizedBox(
               height: 40,
               width: 40,
-              child: Image.asset(userData['image'], fit: BoxFit.cover),
+              child: _buildImage(userData['photoURL'] ?? userData['image']),
             ),
           ),
           const SizedBox(width: 10),
@@ -356,5 +357,25 @@ class ChatAppbar extends StatelessWidget implements PreferredSizeWidget {
         );
       },
     );
+  }
+
+  Widget _buildImage(dynamic imageSource) {
+    if (imageSource == null || (imageSource is String && imageSource.isEmpty)) {
+      return Image.asset(AppImage.user1, fit: BoxFit.cover);
+    }
+
+    if (imageSource is String) {
+      if (imageSource.startsWith('http')) {
+        return Image.network(
+          imageSource,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) =>
+              Image.asset(AppImage.user1, fit: BoxFit.cover),
+        );
+      }
+      return Image.asset(imageSource, fit: BoxFit.cover);
+    }
+
+    return Image.asset(AppImage.user1, fit: BoxFit.cover);
   }
 }

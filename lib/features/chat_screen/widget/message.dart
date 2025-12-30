@@ -1,96 +1,83 @@
-// ignore_for_file: deprecated_member_use
-
-import 'package:flutter/material.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:support_chat/providers/auth_provider.dart';
+import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
-class Message extends StatefulWidget {
-  const Message({super.key});
+class Message extends ConsumerWidget {
+  final String receiverId;
+  const Message({super.key, required this.receiverId});
 
   @override
-  State<Message> createState() => _MessageState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authStateProvider);
+    final messagesAsync = ref.watch(chatMessagesProvider(receiverId));
+    final chatService = ref.watch(chatServiceProvider);
 
-class _MessageState extends State<Message> {
-  final ChatUser currentUser = ChatUser(id: "1", firstName: "Me");
-  final ChatUser otherUser = ChatUser(id: "2", firstName: "Friend");
+    final currentUser = ChatUser(
+      id: authState.value?.uid ?? '1',
+      firstName: authState.value?.displayName ?? 'Me',
+      profileImage: authState.value?.photoURL,
+    );
 
-  List<ChatMessage> messages = [];
-
-  @override
-  void initState() {
-    super.initState();
-
-    // Dummy messages
-    messages = [
-      ChatMessage(
-        text: "Hey! How are you?",
-        user: otherUser,
-        createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
-      ),
-      ChatMessage(
-        text: "I'm good, what about you?",
-        user: currentUser,
-        createdAt: DateTime.now().subtract(const Duration(minutes: 4)),
-      ),
-    ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
       color: AppColors.fourthColor,
-      child: DashChat(
-        currentUser: currentUser,
-        messages: messages,
-        onSend: (ChatMessage m) {
-          setState(() {
-            messages.insert(0, m);
-          });
-        },
-        messageOptions: MessageOptions(
-          currentUserContainerColor: AppColors.fifthColor,
-          containerColor: AppColors.primaryColor,
-          textColor: AppColors.eighthColor,
-          currentUserTextColor: AppColors.primaryColor,
-        ),
-        inputOptions: InputOptions(
-          autocorrect: true,
-          alwaysShowSend: false,
-          sendButtonBuilder: (VoidCallback onSend) {
-            return IconButton(
-              onPressed: onSend,
-              icon: Icon(Icons.send, size: 24, color: AppColors.ninthColor),
-            );
+      child: messagesAsync.when(
+        data: (messages) => DashChat(
+          currentUser: currentUser,
+          messages: messages,
+          onSend: (ChatMessage m) {
+            chatService.sendMessage(receiverId, m);
           },
-          inputDecoration: InputDecoration(
-            hintText: "Write your message",
-            filled: true,
-            fillColor: AppColors.primaryColor,
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 10,
-              horizontal: 16,
-            ),
-            prefixIcon: IconButton(
-              icon: Icon(
-                FontAwesomeIcons.paperclip,
-                color: AppColors.sixthColor,
-                size: 24,
+          messageOptions: MessageOptions(
+            currentUserContainerColor: AppColors.fifthColor,
+            containerColor: AppColors.primaryColor,
+            textColor: AppColors.eighthColor,
+            currentUserTextColor: AppColors.primaryColor,
+          ),
+          inputOptions: InputOptions(
+            autocorrect: true,
+            alwaysShowSend: false,
+            sendButtonBuilder: (VoidCallback onSend) {
+              return IconButton(
+                onPressed: onSend,
+                icon: Icon(Icons.send, size: 24, color: AppColors.ninthColor),
+              );
+            },
+            inputDecoration: InputDecoration(
+              hintText: "Write your message",
+              filled: true,
+              fillColor: AppColors.primaryColor,
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 10,
+                horizontal: 16,
               ),
-              onPressed: () {
-                // Handle attach
-              },
-            ),
-
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(30),
-              borderSide: BorderSide.none,
+              prefixIcon: IconButton(
+                icon: Icon(
+                  FontAwesomeIcons.paperclip,
+                  color: AppColors.sixthColor,
+                  size: 24,
+                ),
+                onPressed: () {
+                  // Handle attach
+                },
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
+          scrollToBottomOptions: ScrollToBottomOptions(),
         ),
-
-        scrollToBottomOptions: const ScrollToBottomOptions(),
+        loading: () => Center(
+          child: CircularProgressIndicator(color: AppColors.fifthColor),
+        ),
+        error: (err, stack) => Center(
+          child: Text('Error: $err', style: const TextStyle(color: Colors.red)),
+        ),
       ),
     );
   }

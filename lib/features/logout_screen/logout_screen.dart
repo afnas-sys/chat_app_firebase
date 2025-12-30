@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/features/chat_screen/widget/custom_dialog.dart';
+import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 
-class LogoutScreen extends StatelessWidget {
+class LogoutScreen extends ConsumerWidget {
   const LogoutScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -20,7 +22,6 @@ class LogoutScreen extends StatelessWidget {
             fit: BoxFit.cover,
           ),
         ),
-
         child: CustomDialog(
           title: AppText.logoutDialogTitle,
           content: AppText.logoutDialogContent,
@@ -34,12 +35,18 @@ class LogoutScreen extends StatelessWidget {
               (_) => false,
             );
           },
-          button2Action: () {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              RoutesNames.loginScreen,
-              (_) => false,
-            );
+          button2Action: () async {
+            // Sign out from Firebase
+            await ref.read(authNotifierProvider.notifier).signOut();
+
+            // Navigate to login screen
+            if (context.mounted) {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                RoutesNames.loginScreen,
+                (_) => false,
+              );
+            }
           },
         ),
       ),

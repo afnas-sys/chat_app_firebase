@@ -1,88 +1,61 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:support_chat/utils/constants/app_image.dart';
+import 'package:support_chat/services/chat_service.dart';
+import 'package:support_chat/providers/auth_provider.dart';
+import 'package:dash_chat_2/dash_chat_2.dart';
 
-final allChatsProvider = Provider<List<Map<String, dynamic>>>((ref) {
-  return [
-    {
-      "user": "Alice",
-      "image": AppImage.user1,
-      "message": "Hey",
-      'time': '2 min Ago',
-      'msgCount': '3',
-      'isOnline': 'Online',
-    },
-    {
-      "user": "Bob",
-      "image": AppImage.user2,
-      "message": "How are you",
-      'time': '2 min Ago',
-      'msgCount': '3',
-      'isOnline': 'Offline',
-    },
-    {
-      "user": "Charlie",
-      "image": AppImage.user3,
-      "message": "Can we talk right now",
-      'time': '2 min Ago',
-      'isOnline': 'Offline',
-    },
-    {
-      "user": "Diana",
-      "image": AppImage.user4,
-      "message": "10000 Received",
-      'time': '2 min Ago',
-      'isOnline': 'Online',
-    },
-    {
-      "user": "Eve",
-      "image": AppImage.user5,
-      "message": "Are you okay",
-      'time': '2 min Ago',
-      'isOnline': 'Offline',
-    },
-    {
-      "user": "Frank",
-      "image": AppImage.user6,
-      "message": "Congrats",
-      'time': '2 min Ago',
-      'isOnline': 'Online',
-    },
-    {
-      "user": "John",
-      "image": AppImage.user7,
-      "message": "I will see you soon",
-      'time': '2 min Ago',
-      'isOnline': 'Online',
-    },
-    {
-      "user": "Charlie",
-      "image": AppImage.user3,
-      "message": "Can we talk right now",
-      'time': '2 min Ago',
-      'isOnline': 'Offline',
-    },
-    {
-      "user": "Diana",
-      "image": AppImage.user4,
-      "message": "10000 Received",
-      'time': '2 min Ago',
-      'isOnline': 'Online',
-    },
-  ];
+final chatServiceProvider = Provider<ChatService>((ref) {
+  return ChatService();
 });
 
+final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((
+  ref,
+  receiverId,
+) {
+  return ref.watch(chatServiceProvider).getMessages(receiverId);
+});
+
+// Search query state
 final chatSearchProvider = StateProvider<String>((ref) => '');
 
-final filteredChatsProvider = Provider.autoDispose<List<Map<String, dynamic>>>((
+// Real-time search provider for users in Firebase
+final usersSearchProvider = FutureProvider<List<Map<String, dynamic>>>((
   ref,
-) {
+) async {
   final query = ref.watch(chatSearchProvider);
-  final allChats = ref.watch(allChatsProvider);
-  if (query.isEmpty) return allChats;
-  return allChats.where((chat) {
-    final name = chat['user'].toString().toLowerCase();
-    final message = chat['message'].toString().toLowerCase();
-    return name.contains(query.toLowerCase()) ||
-        message.contains(query.toLowerCase());
-  }).toList();
+  final authService = ref.watch(authServiceProvider);
+
+  // Hardcoded test user
+  final testUser = {
+    'uid': 'support_admin_id',
+    'displayName': 'Support Admin',
+    'searchName': 'support admin',
+    'email': 'admin@supportchat.app',
+    'photoURL': null, // Falls back to default asset
+    'isOnline': true,
+  };
+
+  if (query.isEmpty) {
+    return [testUser]; // Always show the test user when not searching
+  }
+
+  final results = await authService.searchUsers(query);
+
+  // Also include test user in results if it matches query
+  if (testUser['displayName'].toString().toLowerCase().contains(
+    query.toLowerCase(),
+  )) {
+    if (!results.any((u) => u['uid'] == testUser['uid'])) {
+      results.add(testUser);
+    }
+  }
+
+  return results;
+});
+
+// Provider for actual existing chats (inbox)
+final userChatsProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final authState = ref.watch(authStateProvider);
+  if (authState.value == null) return Stream.value([]);
+
+  return ref.watch(chatServiceProvider).getMyChats();
 });
