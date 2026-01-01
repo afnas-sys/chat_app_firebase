@@ -33,110 +33,119 @@ class Message extends ConsumerWidget {
     return Container(
       color: AppColors.fourthColor,
       child: messagesAsync.when(
-        data: (messages) => DashChat(
-          currentUser: currentUser,
-          messages: messages,
-          onSend: (ChatMessage m) {
-            chatService.sendMessage(receiverId, m);
+        data: (messages) => RefreshIndicator(
+          onRefresh: () async {
+            // Manual refresh of the provider
+            ref.invalidate(chatMessagesProvider(receiverId));
+            await Future.delayed(const Duration(milliseconds: 500));
           },
-          messageOptions: MessageOptions(
-            currentUserContainerColor: AppColors.fifthColor,
-            containerColor: AppColors.primaryColor,
-            textColor: AppColors.eighthColor,
-            currentUserTextColor: AppColors.primaryColor,
-            showTime: true,
-            timeFormat: DateFormat('hh:mm a'),
-            bottom:
-                (
-                  ChatMessage message,
-                  ChatMessage? previousMessage,
-                  ChatMessage? nextMessage,
-                ) {
-                  final isMe = message.user.id == currentUser.id;
-                  if (!isMe) {
-                    return const SizedBox.shrink();
-                  }
-
-                  // Status Ticks logic
-                  Widget statusIcon;
-                  switch (message.status) {
-                    case MessageStatus.read:
-                      statusIcon = const Icon(
-                        Icons.done_all,
-                        size: 16,
-                        color: Colors.blue,
-                      );
-                      break;
-                    case MessageStatus.received:
-                      statusIcon = const Icon(
-                        Icons.done_all,
-                        size: 16,
-                        color: Colors.grey,
-                      );
-                      break;
-                    case MessageStatus.pending:
-                    default:
-                      statusIcon = const Icon(
-                        Icons.done,
-                        size: 16,
-                        color: Colors.grey,
-                      );
-                      break;
-                  }
-
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 2, right: 4),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          DateFormat('hh:mm a').format(message.createdAt),
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.primaryColor,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        statusIcon,
-                      ],
-                    ),
-                  );
-                },
-          ),
-          inputOptions: InputOptions(
-            autocorrect: true,
-            alwaysShowSend: false,
-            sendButtonBuilder: (VoidCallback onSend) {
-              return IconButton(
-                onPressed: onSend,
-                icon: Icon(Icons.send, size: 24, color: AppColors.ninthColor),
-              );
+          color: AppColors.fifthColor,
+          backgroundColor: AppColors.primaryColor,
+          child: DashChat(
+            currentUser: currentUser,
+            messages: messages,
+            onSend: (ChatMessage m) {
+              chatService.sendMessage(receiverId, m);
             },
-            inputDecoration: InputDecoration(
-              hintText: "Write your message",
-              filled: true,
-              fillColor: AppColors.primaryColor,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 16,
-              ),
-              prefixIcon: IconButton(
-                icon: Icon(
-                  FontAwesomeIcons.paperclip,
-                  color: AppColors.sixthColor,
-                  size: 24,
+            messageOptions: MessageOptions(
+              currentUserContainerColor: AppColors.fifthColor,
+              containerColor: AppColors.primaryColor,
+              textColor: AppColors.eighthColor,
+              currentUserTextColor: AppColors.primaryColor,
+              showTime: true,
+              timeFormat: DateFormat('hh:mm a'),
+              bottom:
+                  (
+                    ChatMessage message,
+                    ChatMessage? previousMessage,
+                    ChatMessage? nextMessage,
+                  ) {
+                    final isMe = message.user.id == currentUser.id;
+                    if (!isMe) {
+                      return const SizedBox.shrink();
+                    }
+
+                    // Status Ticks logic
+                    Widget statusIcon;
+                    switch (message.status) {
+                      case MessageStatus.read:
+                        statusIcon = const Icon(
+                          Icons.done_all,
+                          size: 16,
+                          color: Colors.blue,
+                        );
+                        break;
+                      case MessageStatus.received:
+                        statusIcon = const Icon(
+                          Icons.done_all,
+                          size: 16,
+                          color: Colors.grey,
+                        );
+                        break;
+                      case MessageStatus.pending:
+                      default:
+                        statusIcon = const Icon(
+                          Icons.done,
+                          size: 16,
+                          color: Colors.grey,
+                        );
+                        break;
+                    }
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 2, right: 4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            DateFormat('hh:mm a').format(message.createdAt),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.primaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          statusIcon,
+                        ],
+                      ),
+                    );
+                  },
+            ),
+            inputOptions: InputOptions(
+              autocorrect: true,
+              alwaysShowSend: false,
+              sendButtonBuilder: (VoidCallback onSend) {
+                return IconButton(
+                  onPressed: onSend,
+                  icon: Icon(Icons.send, size: 24, color: AppColors.ninthColor),
+                );
+              },
+              inputDecoration: InputDecoration(
+                hintText: "Write your message",
+                filled: true,
+                fillColor: AppColors.primaryColor,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 16,
                 ),
-                onPressed: () {
-                  // Handle attach
-                },
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(30),
-                borderSide: BorderSide.none,
+                prefixIcon: IconButton(
+                  icon: Icon(
+                    FontAwesomeIcons.paperclip,
+                    color: AppColors.sixthColor,
+                    size: 24,
+                  ),
+                  onPressed: () {
+                    // Handle attach
+                  },
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(30),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
+            scrollToBottomOptions: ScrollToBottomOptions(),
           ),
-          scrollToBottomOptions: ScrollToBottomOptions(),
         ),
         loading: () => Center(
           child: CircularProgressIndicator(color: AppColors.fifthColor),

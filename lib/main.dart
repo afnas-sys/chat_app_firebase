@@ -10,6 +10,7 @@ import 'package:support_chat/utils/constants/theme.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:support_chat/services/notification_service.dart';
+import 'package:support_chat/services/connectivity_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -27,6 +28,9 @@ void main() async {
     // Initialize Notification Service
     final notificationService = NotificationService();
     await notificationService.init();
+
+    // Initialize Connectivity Service (Online/Offline Status)
+    ConnectivityService().initialize();
 
     // Set background message handler
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);

@@ -43,41 +43,45 @@ class AuthService {
     String? displayName,
   }) async {
     try {
-      // 1. Check if display name is already taken (case-insensitive)
-      if (displayName != null && displayName.isNotEmpty) {
-        final String searchName = displayName.toLowerCase();
-        final querySnapshot = await _firestore
-            .collection('users')
-            .where('searchName', isEqualTo: searchName)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          return {
-            'success': false,
-            'message': 'This username is already taken. Please choose another.',
-          };
-        }
-      }
-
-      // 2. Normalize and Capitalize display name
-      String? normalizedDisplayName;
-      if (displayName != null && displayName.isNotEmpty) {
-        normalizedDisplayName = _capitalize(displayName.trim());
-      }
-
-      // 3. Create user with email and password
+      // 1. Create user with email and password first (to get Auth context)
       print('DEBUG: Attempting to create user in Auth...');
       final UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
       print('DEBUG: Auth account created: ${userCredential.user?.uid}');
 
-      // 4. Update display name if provided
-      if (normalizedDisplayName != null) {
-        await userCredential.user?.updateDisplayName(normalizedDisplayName);
-      }
-
-      // 5. Store user data in Firestore
       try {
+        // 2. Check if display name is already taken (Now we are authenticated)
+        if (displayName != null && displayName.isNotEmpty) {
+          final String searchName = displayName.toLowerCase();
+          final querySnapshot = await _firestore
+              .collection('users')
+              .where('searchName', isEqualTo: searchName)
+              .get();
+
+          if (querySnapshot.docs.isNotEmpty) {
+            // Rollback: Delete the auth user
+            print('DEBUG: Username taken, deleting auth user...');
+            await userCredential.user?.delete();
+            return {
+              'success': false,
+              'message':
+                  'This username is already taken. Please choose another.',
+            };
+          }
+        }
+
+        // 3. Normalize and Capitalize display name
+        String? normalizedDisplayName;
+        if (displayName != null && displayName.isNotEmpty) {
+          normalizedDisplayName = _capitalize(displayName.trim());
+        }
+
+        // 4. Update display name if provided
+        if (normalizedDisplayName != null) {
+          await userCredential.user?.updateDisplayName(normalizedDisplayName);
+        }
+
+        // 5. Store user data in Firestore
         print('DEBUG: Attempting to save to Firestore...');
         await _firestore.collection('users').doc(userCredential.user!.uid).set({
           'uid': userCredential.user!.uid,
@@ -90,11 +94,10 @@ class AuthService {
         });
         print('DEBUG: Firestore document saved successfully');
       } catch (e) {
-        print('DEBUG: Firestore Error: $e');
-        return {
-          'success': false,
-          'message': 'Auth succeeded but Database failed: $e',
-        };
+        // Rollback if anything fails in these steps
+        print('DEBUG: Error during signup post-auth steps: $e');
+        await userCredential.user?.delete();
+        rethrow; // Rethrow to be caught by outer catch
       }
 
       // 6. Update FCM Token
@@ -219,6 +222,30 @@ class AuthService {
     } catch (e) {
       print('DEBUG: Update Profile Error: $e');
       return false;
+    }
+  }
+
+  // Get recent users (for directory when search is empty)
+  Future<List<Map<String, dynamic>>> getRecentUsers() async {
+    try {
+      final querySnapshot = await _firestore
+          .collection('users')
+          .orderBy('lastSeen', descending: true)
+          .limit(20)
+          .get();
+
+      final results = <Map<String, dynamic>>[];
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final uid = data['uid'] as String?;
+        if (uid != null && uid != currentUser?.uid) {
+          results.add(data);
+        }
+      }
+      return results;
+    } catch (e) {
+      print('DEBUG: Get recent users error: $e');
+      return [];
     }
   }
 

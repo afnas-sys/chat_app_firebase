@@ -7,6 +7,7 @@ import 'package:support_chat/features/chat_screen/view/chat_screen.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/theme.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatTile extends StatelessWidget {
   final List<Map<String, dynamic>> datas;
@@ -53,21 +54,32 @@ class ChatTile extends StatelessWidget {
         if (name.trim().isEmpty) name = "Unknown";
 
         final image = data["photoURL"] ?? data["image"] ?? AppImage.user1;
-        final latestMsg =
-            data["lastMessage"] ??
-            data["message"] ??
-            data["email"] ??
-            "No message";
+        // WhatsApp-style highlights
+        final unreadCount = data['unreadCount'] ?? 0;
+        final hasUnread = unreadCount > 0;
+
+        // Force use of lastMessage check
+        String? latestMsg = data["lastMessage"] ?? data["message"];
+        print(
+          'DEBUG: Tile for ${name} [Source: ${data['source']}] - lastMessage: ${data["lastMessage"]}, resolved: $latestMsg',
+        );
+
+        if (latestMsg == null || latestMsg.trim().isEmpty) {
+          latestMsg = "Tap to chat";
+        } else {
+          // Check if current user sent the last message (requires lastSenderId from ChatService)
+          final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+          final lastSenderId = data['lastSenderId'];
+          if (currentUserId != null && lastSenderId == currentUserId) {
+            latestMsg = "You: $latestMsg";
+          }
+        }
 
         final timeString = _formatTimestamp(
           data["lastMessageTime"] ?? data["time"],
         );
 
         final isOnline = data["isOnline"] == true ? "Online" : "Offline";
-
-        // WhatsApp-style highlights
-        final unreadCount = data['unreadCount'] ?? 0;
-        final hasUnread = unreadCount > 0;
 
         final userData = {
           ...data,
@@ -94,75 +106,112 @@ class ChatTile extends StatelessWidget {
             hoverColor: AppColors.primaryColor.withOpacity(0.05),
             splashColor: AppColors.fifthColor.withOpacity(0.1),
             highlightColor: AppColors.fifthColor.withOpacity(0.05),
-            child: ListTile(
-              leading: GestureDetector(
-                onTap: () => _showProfileDialog(context, name, image, userData),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
-                  child: SizedBox(
-                    height: 52,
-                    width: 52,
-                    child: _buildImage(image),
-                  ),
-                ),
-              ),
-              title: Text(
-                name,
-                style: Theme.of(context).textTheme.titleMediumPrimary,
-              ),
-              subtitle: Text(
-                latestMsg,
-                style: hasUnread
-                    ? Theme.of(context).textTheme.bodySmallPrimary.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryColor,
-                      )
-                    : Theme.of(context).textTheme.bodySmallSecondary,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
                 children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (timeString.isNotEmpty)
-                        Text(
-                          timeString,
-                          style: hasUnread
-                              ? Theme.of(
+                  // Leading: Avatar
+                  GestureDetector(
+                    onTap: () =>
+                        _showProfileDialog(context, name, image, userData),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(30),
+                      child: SizedBox(
+                        height: 52,
+                        width: 52,
+                        child: _buildImage(image),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Body: Name, Message, Time, Badge
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top Row: Name + Time
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                name,
+                                style: Theme.of(
                                   context,
-                                ).textTheme.bodySmallPrimary.copyWith(
-                                  color: AppColors.fifthColor,
-                                  fontWeight: FontWeight.bold,
-                                )
-                              : Theme.of(context).textTheme.bodySmallSecondary,
-                        ),
-                      const SizedBox(height: 6),
-                      if (hasUnread)
-                        Container(
-                          height: 22,
-                          constraints: const BoxConstraints(minWidth: 22),
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(30),
-                            color: AppColors.fifthColor,
-                          ),
-                          child: Text(
-                            unreadCount.toString(),
-                            style: Theme.of(context).textTheme.bodySmallPrimary
-                                .copyWith(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
+                                ).textTheme.titleMediumPrimary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (timeString.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8),
+                                child: Text(
+                                  timeString,
+                                  style: hasUnread
+                                      ? Theme.of(
+                                          context,
+                                        ).textTheme.bodySmallPrimary.copyWith(
+                                          color: AppColors.fifthColor,
+                                          fontWeight: FontWeight.bold,
+                                        )
+                                      : Theme.of(
+                                          context,
+                                        ).textTheme.bodySmallSecondary,
                                 ),
-                          ),
+                              ),
+                          ],
                         ),
-                    ],
+                        const SizedBox(height: 4),
+                        // Bottom Row: Message + Badge
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                latestMsg!,
+                                style: hasUnread
+                                    ? Theme.of(
+                                        context,
+                                      ).textTheme.bodySmallPrimary.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryColor,
+                                      )
+                                    : Theme.of(
+                                        context,
+                                      ).textTheme.bodySmallSecondary,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (hasUnread)
+                              Container(
+                                margin: const EdgeInsets.only(left: 8),
+                                height: 22,
+                                constraints: const BoxConstraints(minWidth: 22),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(30),
+                                  color: Colors.green,
+                                ),
+                                child: Text(
+                                  unreadCount.toString(),
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmallPrimary
+                                      .copyWith(
+                                        color: Colors.white,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
