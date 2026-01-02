@@ -104,6 +104,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(context, RoutesNames.createGroupScreen);
+          },
+          backgroundColor: AppColors.primaryColor,
+          child: const Icon(Icons.group_add, color: Colors.white),
+        ),
         body: Container(
           width: double.infinity,
           height: double.infinity,

@@ -17,6 +17,7 @@ class CustomBottomBar extends StatefulWidget {
 class _CustomBottomBarState extends State<CustomBottomBar> {
   int _currentIndex = 0;
   List<Widget> bodys = [HomeScreen(), CallScreen(), LogoutScreen()];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

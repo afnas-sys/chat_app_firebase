@@ -23,9 +23,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     // Mark messages as read when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final receiverId = widget.userData['uid'];
+      final isGroup = widget.userData['isGroup'] == true;
       final chatService = ref.read(chatServiceProvider);
       if (receiverId != null) {
-        chatService.markAsRead(receiverId);
+        chatService.markAsRead(receiverId, isGroup: isGroup);
       }
       chatService.markAsDelivered();
     });
@@ -54,6 +55,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 child: GlassContainer(
                   child: Message(
                     receiverId: widget.userData['uid'] ?? 'dummy_id',
+                    isGroup: widget.userData['isGroup'] == true,
                   ),
                 ),
               ),

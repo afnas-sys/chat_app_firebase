@@ -16,10 +16,19 @@ class ChatService {
   }
 
   // Send message
-  Future<void> sendMessage(String receiverId, ChatMessage message) async {
+  Future<void> sendMessage(
+    String receiverId,
+    ChatMessage message, {
+    bool isGroup = false,
+  }) async {
     final String currentUserId = _auth.currentUser!.uid;
-    final String chatId = getChatId(currentUserId, receiverId);
-    print('DEBUG: sendMessage called for chatId: $chatId');
+    // If group, receiverId is the Group ID (chatId).
+    // If 1-on-1, receiverId is the other user's ID.
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
+
+    print('DEBUG: sendMessage called for chatId: $chatId (isGroup: $isGroup)');
 
     final messageData = {
       'text': message.text,
@@ -32,6 +41,15 @@ class ChatService {
         'firstName': message.user.firstName ?? '',
         'profileImage': message.user.profileImage ?? '',
       },
+      'medias': message.medias
+          ?.map(
+            (m) => {
+              'url': m.url,
+              'type': m.type.toString(),
+              'fileName': m.fileName,
+            },
+          )
+          .toList(),
     };
 
     // 1. Update/Create parent chat document FIRST
@@ -39,11 +57,28 @@ class ChatService {
     final updateData = {
       'lastMessage': message.text,
       'lastMessageTime': FieldValue.serverTimestamp(),
-      'users': [currentUserId, receiverId],
+      if (!isGroup) 'users': [currentUserId, receiverId],
+      if (!isGroup) 'participants': [currentUserId, receiverId],
       'lastSenderId': currentUserId,
-      'participants': [currentUserId, receiverId],
-      'unreadCount_$receiverId': FieldValue.increment(1),
     };
+
+    // For groups, we don't update 'users' array here typically, unless we want to "revive" it?
+    // Groups already have 'users'.
+    // However, for 1-on-1, we ensure users array.
+    // Also, update unreadCount for others.
+
+    if (isGroup) {
+      // For groups, we ideally increment unreadCount for ALL other members.
+      // But implementing that efficiently requires cloud functions or carefully crafted batch updates.
+      // For now, let's skip complex unread count for groups or just try to increment for everyone else?
+      // We can't easily filter all fields "unreadCount_*" in a simple set.
+      // For MVP, we might skip group unread counts or handle later.
+      // But unreadCount_${receiverId} is definitely wrong for groups since receiverId is groupId.
+      // We need unreadCount_USERID for each user.
+      // Let's leave unread counts for groups for now to avoid complexity/bugs.
+    } else {
+      updateData['unreadCount_$receiverId'] = FieldValue.increment(1);
+    }
 
     try {
       await _firestore
@@ -65,9 +100,11 @@ class ChatService {
   }
 
   // Mark messages as read
-  Future<void> markAsRead(String receiverId) async {
+  Future<void> markAsRead(String receiverId, {bool isGroup = false}) async {
     final String currentUserId = _auth.currentUser!.uid;
-    final String chatId = getChatId(currentUserId, receiverId);
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
 
     try {
       // 1. Reset unread count
@@ -134,7 +171,7 @@ class ChatService {
       );
     } catch (e) {
       // If you see an error here, check if you need to create a Collection Group index in Firebase Console
-      print('DEBUG: markAsDelivered error: $e');
+      print('DEBUG: [UID: $currentUserId] markAsDelivered error: $e');
     }
   }
 
@@ -176,9 +213,14 @@ class ChatService {
   }
 
   // Get messages stream
-  Stream<List<ChatMessage>> getMessages(String receiverId) {
+  Stream<List<ChatMessage>> getMessages(
+    String receiverId, {
+    bool isGroup = false,
+  }) {
     final String currentUserId = _auth.currentUser!.uid;
-    final String chatId = getChatId(currentUserId, receiverId);
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
 
     return _firestore
         .collection('chats')
@@ -214,6 +256,23 @@ class ChatService {
               createdAt:
                   (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
               status: status,
+              medias: data['medias'] != null
+                  ? (data['medias'] as List<dynamic>).map((m) {
+                      MediaType mediaType = MediaType.file;
+                      final typeStr = m['type'].toString();
+                      if (typeStr == MediaType.image.toString()) {
+                        mediaType = MediaType.image;
+                      } else if (typeStr == MediaType.video.toString()) {
+                        mediaType = MediaType.video;
+                      }
+
+                      return ChatMedia(
+                        url: m['url'],
+                        fileName: m['fileName'] ?? '',
+                        type: mediaType,
+                      );
+                    }).toList()
+                  : null,
             );
           }).toList();
         });
@@ -237,6 +296,28 @@ class ChatService {
               final data = doc.data();
               if (data['users'] == null) {
                 print('DEBUG: Chat ${doc.id} missing users field');
+                continue;
+              }
+
+              final bool isGroup = data['isGroup'] == true;
+
+              if (isGroup) {
+                // Handle Group Chat
+                chats.add({
+                  ...data,
+                  'uid': doc
+                      .id, // Use chat ID as UID for groups to route correctly
+                  'displayName': data['groupName'] ?? 'Unknown Group',
+                  'photoURL':
+                      data['groupImage'] ??
+                      '', // Add group placeholder if empty
+                  'isOnline': false,
+                  'id': doc.id,
+                  'isGroup': true,
+                  'unreadCount': data['unreadCount_$currentUserId'] ?? 0,
+                  'lastMessage': data['lastMessage'] ?? '',
+                  'lastMessageTime': data['lastMessageTime'],
+                });
                 continue;
               }
 
@@ -284,7 +365,11 @@ class ChatService {
                 'photoURL': userData['photoURL'] ?? userData['image'],
                 'isOnline': userData['isOnline'] ?? false,
                 'id': doc.id,
+                'isGroup': false,
                 'unreadCount': data['unreadCount_$currentUserId'] ?? 0,
+                'email': userData['email'],
+                'createdAt': userData['createdAt'],
+                'lastSeen': userData['lastSeen'],
               });
             } catch (e) {
               print('DEBUG: Error processing chat ${doc.id}: $e');
@@ -302,5 +387,161 @@ class ChatService {
 
           return chats;
         });
+  }
+
+  // Block user
+  Future<void> blockUser(String userId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+    await _firestore.collection('users').doc(currentUser.uid).update({
+      'blockedUsers': FieldValue.arrayUnion([userId]),
+    });
+  }
+
+  // Unblock user
+  Future<void> unblockUser(String userId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return;
+    await _firestore.collection('users').doc(currentUser.uid).update({
+      'blockedUsers': FieldValue.arrayRemove([userId]),
+    });
+  }
+
+  // Delete Chat
+  Future<void> deleteChat(String receiverId) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    // Check if it's a group chat (this is a heuristic, ideally we pass chatId directly)
+    // But since existing deleteChat takes receiverId, we might need a way to delete group chats.
+    // For now, let's assume receiverId IS the chatId if it doesn't contain underscores (or if we change how we call it).
+    // actually, the current implementation presumes 1-on-1.
+    // Let's keep it as is for 1-on-1 and add deleteGroup separately or handle it if we refactor.
+    // For 1-on-1:
+    final String chatId = getChatId(currentUserId, receiverId);
+
+    try {
+      // 1. Delete all messages in the subcollection
+      final messages = await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .get();
+
+      if (messages.docs.isNotEmpty) {
+        final batch = _firestore.batch();
+        for (final doc in messages.docs) {
+          batch.delete(doc.reference);
+        }
+        await batch.commit();
+      }
+
+      // 2. Delete the chat document itself
+      await _firestore.collection('chats').doc(chatId).delete();
+      print('DEBUG: Chat $chatId deleted successfully');
+    } catch (e) {
+      print('DEBUG: Error deleting chat $chatId: $e');
+      // If it failed, maybe it was a group chat ID passed as receiverId?
+      // Try deleting as if receiverId IS the chatId
+      try {
+        await _firestore.collection('chats').doc(receiverId).delete();
+      } catch (e2) {
+        rethrow;
+      }
+    }
+  }
+
+  // Create Group
+  Future<void> createGroup(
+    String groupName,
+    List<String> memberIds,
+    String groupImage,
+  ) async {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null) return;
+
+    final allMembers = [...memberIds, currentUserId];
+
+    final groupData = {
+      'groupName': groupName,
+      'groupImage': groupImage,
+      'isGroup': true,
+      'adminId': currentUserId,
+      'users': allMembers,
+      'participants': allMembers,
+      'createdAt': FieldValue.serverTimestamp(),
+      'lastMessage': 'Group created',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+      'lastSenderId': currentUserId,
+    };
+
+    try {
+      final docRef = await _firestore.collection('chats').add(groupData);
+      print('DEBUG: Group created with ID: ${docRef.id}');
+
+      // Add initial system message
+      await docRef.collection('messages').add({
+        'text': '$groupName created',
+        'senderId': currentUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'sent',
+        'user': {
+          'id': currentUserId,
+          'firstName': 'System',
+          'profileImage': '',
+        },
+        'isSystemMessage': true,
+      });
+    } catch (e) {
+      print('DEBUG: Error creating group: $e');
+      rethrow;
+    }
+  }
+
+  // Update Group Image
+  Future<void> updateGroupImage(String groupId, String imageUrl) async {
+    try {
+      await _firestore.collection('chats').doc(groupId).update({
+        'groupImage': imageUrl,
+      });
+      print('DEBUG: Group image updated for $groupId');
+    } catch (e) {
+      print('DEBUG: Error updating group image: $e');
+      rethrow;
+    }
+  }
+
+  // Add members to group
+  Future<void> addMembersToGroup(
+    String groupId,
+    List<String> newMemberIds,
+  ) async {
+    try {
+      await _firestore.collection('chats').doc(groupId).update({
+        'users': FieldValue.arrayUnion(newMemberIds),
+        'participants': FieldValue.arrayUnion(newMemberIds),
+      });
+      print('DEBUG: Added members $newMemberIds to group $groupId');
+
+      final currentUserId = _auth.currentUser?.uid ?? '';
+      // Add system message
+      await _firestore
+          .collection('chats')
+          .doc(groupId)
+          .collection('messages')
+          .add({
+            'text': 'New members added',
+            'senderId': currentUserId,
+            'createdAt': FieldValue.serverTimestamp(),
+            'status': 'sent',
+            'user': {
+              'id': currentUserId,
+              'firstName': 'System',
+              'profileImage': '',
+            },
+            'isSystemMessage': true,
+          });
+    } catch (e) {
+      print('DEBUG: Error adding members to group: $e');
+      rethrow;
+    }
   }
 }

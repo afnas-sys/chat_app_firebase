@@ -1,27 +1,36 @@
+import 'dart:io';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/providers/chat_provider.dart';
+import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
 class Message extends ConsumerWidget {
   final String receiverId;
-  const Message({super.key, required this.receiverId});
+  final bool isGroup;
+
+  const Message({super.key, required this.receiverId, this.isGroup = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // USER REQUEST: Auto-mark as read whenever new messages arrive while chat is open
-    ref.listen(chatMessagesProvider(receiverId), (previous, next) {
+    final chatParams = ChatParams(receiverId: receiverId, isGroup: isGroup);
+
+    ref.listen(chatMessagesProvider(chatParams), (previous, next) {
       if (next is AsyncData && next.value != null) {
-        ref.read(chatServiceProvider).markAsRead(receiverId);
+        // Only mark as read for 1-on-1 for now? Or handle groups if implemented.
+        // chatService.markAsRead(chatParams.receiverId); // markAsRead implementation needs check
+        ref.read(chatServiceProvider).markAsRead(receiverId, isGroup: isGroup);
       }
     });
 
     final authState = ref.watch(authStateProvider);
-    final messagesAsync = ref.watch(chatMessagesProvider(receiverId));
+    final messagesAsync = ref.watch(chatMessagesProvider(chatParams));
     final chatService = ref.watch(chatServiceProvider);
 
     final currentUser = ChatUser(
@@ -36,7 +45,7 @@ class Message extends ConsumerWidget {
         data: (messages) => RefreshIndicator(
           onRefresh: () async {
             // Manual refresh of the provider
-            ref.invalidate(chatMessagesProvider(receiverId));
+            ref.invalidate(chatMessagesProvider(chatParams));
             await Future.delayed(const Duration(milliseconds: 500));
           },
           color: AppColors.fifthColor,
@@ -45,7 +54,7 @@ class Message extends ConsumerWidget {
             currentUser: currentUser,
             messages: messages,
             onSend: (ChatMessage m) {
-              chatService.sendMessage(receiverId, m);
+              chatService.sendMessage(receiverId, m, isGroup: isGroup);
             },
             messageOptions: MessageOptions(
               currentUserContainerColor: AppColors.fifthColor,
@@ -135,7 +144,134 @@ class Message extends ConsumerWidget {
                     size: 24,
                   ),
                   onPressed: () {
-                    // Handle attach
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: AppColors.fourthColor,
+                      builder: (context) => SafeArea(
+                        child: Wrap(
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                Icons.camera_alt,
+                                color: AppColors.fifthColor,
+                              ),
+                              title: const Text(
+                                'Camera',
+                                style: TextStyle(color: AppColors.primaryColor),
+                              ),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                final service = ref.read(
+                                  cloudinaryServiceProvider,
+                                );
+                                final File? file = await service.pickImage(
+                                  ImageSource.camera,
+                                );
+                                if (file != null) {
+                                  final url = await service.uploadFile(file);
+                                  if (url != null) {
+                                    final message = ChatMessage(
+                                      user: currentUser,
+                                      createdAt: DateTime.now(),
+                                      medias: [
+                                        ChatMedia(
+                                          url: url,
+                                          fileName: file.path.split('/').last,
+                                          type: MediaType.image,
+                                        ),
+                                      ],
+                                    );
+                                    chatService.sendMessage(
+                                      receiverId,
+                                      message,
+                                      isGroup: isGroup,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                            ListTile(
+                              leading: Icon(
+                                Icons.photo,
+                                color: AppColors.fifthColor,
+                              ),
+                              title: const Text(
+                                'Gallery',
+                                style: TextStyle(color: AppColors.primaryColor),
+                              ),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                final service = ref.read(
+                                  cloudinaryServiceProvider,
+                                );
+                                final File? file = await service.pickImage(
+                                  ImageSource.gallery,
+                                );
+                                if (file != null) {
+                                  final url = await service.uploadFile(file);
+                                  if (url != null) {
+                                    final message = ChatMessage(
+                                      user: currentUser,
+                                      createdAt: DateTime.now(),
+                                      medias: [
+                                        ChatMedia(
+                                          url: url,
+                                          fileName: file.path.split('/').last,
+                                          type: MediaType.image,
+                                        ),
+                                      ],
+                                    );
+                                    chatService.sendMessage(
+                                      receiverId,
+                                      message,
+                                      isGroup: isGroup,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                            ListTile(
+                              leading: Icon(
+                                Icons.attach_file,
+                                color: AppColors.fifthColor,
+                              ),
+                              title: const Text(
+                                'File',
+                                style: TextStyle(color: AppColors.primaryColor),
+                              ),
+                              onTap: () async {
+                                Navigator.pop(context);
+                                final service = ref.read(
+                                  cloudinaryServiceProvider,
+                                );
+                                final File? file = await service.pickFile();
+                                if (file != null) {
+                                  final url = await service.uploadFile(file);
+                                  if (url != null) {
+                                    final message = ChatMessage(
+                                      user: currentUser,
+                                      createdAt: DateTime.now(),
+                                      medias: [
+                                        ChatMedia(
+                                          url: url,
+                                          fileName: file.path.split('/').last,
+                                          type: MediaType.file,
+                                        ),
+                                      ],
+                                    );
+                                    chatService.sendMessage(
+                                      receiverId,
+                                      message,
+                                      isGroup: isGroup,
+                                    );
+                                  }
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
                   },
                 ),
                 border: OutlineInputBorder(

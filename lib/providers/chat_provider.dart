@@ -7,12 +7,30 @@ final chatServiceProvider = Provider<ChatService>((ref) {
   return ChatService();
 });
 
-final chatMessagesProvider = StreamProvider.family<List<ChatMessage>, String>((
-  ref,
-  receiverId,
-) {
-  return ref.watch(chatServiceProvider).getMessages(receiverId);
-});
+class ChatParams {
+  final String receiverId;
+  final bool isGroup;
+
+  ChatParams({required this.receiverId, this.isGroup = false});
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ChatParams &&
+        other.receiverId == receiverId &&
+        other.isGroup == isGroup;
+  }
+
+  @override
+  int get hashCode => receiverId.hashCode ^ isGroup.hashCode;
+}
+
+final chatMessagesProvider =
+    StreamProvider.family<List<ChatMessage>, ChatParams>((ref, params) {
+      return ref
+          .watch(chatServiceProvider)
+          .getMessages(params.receiverId, isGroup: params.isGroup);
+    });
 
 // Search query state
 final chatSearchProvider = StateProvider<String>((ref) => '');

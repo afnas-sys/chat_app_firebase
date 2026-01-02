@@ -176,6 +176,15 @@ class AuthService {
     }
   }
 
+  // Get user data stream
+  Stream<Map<String, dynamic>?> getUserStream(String uid) {
+    return _firestore
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.data());
+  }
+
   Future<bool> updateUserProfile({
     required String uid,
     String? displayName,

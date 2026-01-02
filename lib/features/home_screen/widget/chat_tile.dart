@@ -27,16 +27,15 @@ class ChatTile extends StatelessWidget {
     }
 
     final now = DateTime.now();
-    final difference = now.difference(dateTime);
+    final today = DateTime(now.year, now.month, now.day);
+    final dateToCheck = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
-    if (difference.inDays == 0) {
-      return DateFormat('hh:mm a').format(dateTime); // Today
-    } else if (difference.inDays == 1) {
+    if (dateToCheck == today) {
+      return DateFormat('hh:mm a').format(dateTime);
+    } else if (dateToCheck == today.subtract(const Duration(days: 1))) {
       return "Yesterday";
-    } else if (difference.inDays < 7) {
-      return DateFormat('EEEE').format(dateTime); // Day of week
     } else {
-      return DateFormat('dd/MM/yy').format(dateTime); // Older
+      return DateFormat('dd/MM/yy').format(dateTime);
     }
   }
 
@@ -60,9 +59,6 @@ class ChatTile extends StatelessWidget {
 
         // Force use of lastMessage check
         String? latestMsg = data["lastMessage"] ?? data["message"];
-        print(
-          'DEBUG: Tile for ${name} [Source: ${data['source']}] - lastMessage: ${data["lastMessage"]}, resolved: $latestMsg',
-        );
 
         if (latestMsg == null || latestMsg.trim().isEmpty) {
           latestMsg = "Tap to chat";
@@ -168,7 +164,7 @@ class ChatTile extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                latestMsg!,
+                                latestMsg,
                                 style: hasUnread
                                     ? Theme.of(
                                         context,

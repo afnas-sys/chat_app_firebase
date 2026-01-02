@@ -23,6 +23,15 @@ final currentUserDataProvider = FutureProvider<Map<String, dynamic>?>((
   return await authService.getUserData(user.uid);
 });
 
+// Current user data stream provider
+final currentUserStreamProvider = StreamProvider<Map<String, dynamic>?>((ref) {
+  final user = ref.watch(authStateProvider).value;
+  if (user == null) return Stream.value(null);
+
+  final authService = ref.watch(authServiceProvider);
+  return authService.getUserStream(user.uid);
+});
+
 // Auth state notifier for handling auth operations
 class AuthNotifier extends StateNotifier<AsyncValue<Map<String, dynamic>>> {
   final AuthService _authService;

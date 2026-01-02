@@ -5,6 +5,7 @@ import 'package:support_chat/features/login_screen/login_screen.dart';
 import 'package:support_chat/features/register_screen/register_screen.dart';
 import 'package:support_chat/features/forgot_password_screen/forgot_password_screen.dart';
 import 'package:support_chat/features/home_screen/view/profile_screen.dart';
+import 'package:support_chat/features/chat_screen/view/create_group_screen.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/widgets/custom_bottom_bar.dart';
 
@@ -47,6 +48,12 @@ class AppRouter {
           settings,
           PageTransitionType.fade,
         );
+      case RoutesNames.createGroupScreen:
+        return _buildPageTransition(
+          const CreateGroupScreen(),
+          settings,
+          PageTransitionType.fade,
+        );
       default:
         return _buildPageTransition(
           const LoginScreen(),
@@ -84,6 +91,8 @@ class AppRouter {
         return const HomeScreen();
       case RoutesNames.profileScreen:
         return const ProfileScreen();
+      case RoutesNames.createGroupScreen:
+        return const CreateGroupScreen();
       default:
         return const LoginScreen();
     }
