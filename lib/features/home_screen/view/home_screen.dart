@@ -109,7 +109,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Navigator.pushNamed(context, RoutesNames.createGroupScreen);
           },
           backgroundColor: AppColors.primaryColor,
-          child: const Icon(Icons.group_add, color: Colors.white),
+          child: const Icon(Icons.group_add, color: Colors.black),
         ),
         body: Container(
           width: double.infinity,
@@ -200,6 +200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: AppColors.tertiaryColor),
                     ),
+                    //! SEARCH BAR
                     child: CustomTextFormField(
                       controller: _searchController,
                       textColor: AppColors.primaryColor,

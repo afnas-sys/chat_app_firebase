@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
 ThemeData theme = ThemeData(
-  colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primaryColor),
-  //  scaffoldBackgroundColor: Colors.transparent,
-  iconTheme: IconThemeData(
-    color: AppColors.primaryColor,
-    size: 20,
-    //    weight:
+  useMaterial3: true,
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: AppColors.primaryColor,
+    brightness: Brightness.dark, // This helps in forcing light icons
   ),
+  appBarTheme: const AppBarTheme(
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // White icons for Android
+      statusBarBrightness: Brightness.dark, // White icons for iOS
+    ),
+  ),
+  iconTheme: IconThemeData(color: AppColors.primaryColor, size: 20),
 );
 
 extension CustomTextStyle on TextTheme {
@@ -85,6 +92,11 @@ extension CustomTextStyle on TextTheme {
     fontSize: 14,
     fontWeight: FontWeight.w500,
     color: AppColors.twelfthColor,
+  );
+  TextStyle get bodyMediumFourth => GoogleFonts.inter(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: AppColors.tertiaryColor,
   );
 
   TextStyle get bodySmallPrimary => GoogleFonts.inter(

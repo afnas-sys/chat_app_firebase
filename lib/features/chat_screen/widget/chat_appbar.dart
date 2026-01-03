@@ -12,6 +12,7 @@ import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 import 'package:support_chat/utils/widgets/custom_elevated_button.dart';
 import 'package:support_chat/features/chat_screen/view/add_group_members_screen.dart';
+import 'package:support_chat/features/chat_screen/view/remove_group_members_screen.dart';
 import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -114,6 +115,9 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
                   } else if (value == 'addMembers' &&
                       userData['isGroup'] == true) {
                     _addGroupMembers(context, userData);
+                  } else if (value == 'removeMembers' &&
+                      userData['isGroup'] == true) {
+                    _removeGroupMembers(context, userData);
                   } else if (value == 'block') {
                     showDialog(
                       context: context,
@@ -200,6 +204,23 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
                             ),
                             title: Text(
                               'Add Members',
+                              style: Theme.of(
+                                context,
+                              ).textTheme.bodySmallTertiary,
+                            ),
+                          ),
+                        ),
+                        const PopupMenuDivider(height: 1),
+                        PopupMenuItem(
+                          value: 'removeMembers',
+                          child: ListTile(
+                            leading: Icon(
+                              FontAwesomeIcons.userMinus,
+                              size: 16,
+                              color: AppColors.sixthColor,
+                            ),
+                            title: Text(
+                              'Remove Members',
                               style: Theme.of(
                                 context,
                               ).textTheme.bodySmallTertiary,
@@ -567,6 +588,26 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
       context,
       MaterialPageRoute(
         builder: (context) => AddGroupMembersScreen(
+          groupId: groupId,
+          groupName: groupName,
+          existingMemberIds: existingMembers,
+        ),
+      ),
+    );
+  }
+
+  void _removeGroupMembers(
+    BuildContext context,
+    Map<String, dynamic> groupData,
+  ) {
+    final groupId = groupData['uid'] ?? groupData['id'];
+    final groupName = groupData['displayName'] ?? 'Group';
+    final existingMembers = List<String>.from(groupData['users'] ?? []);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RemoveGroupMembersScreen(
           groupId: groupId,
           groupName: groupName,
           existingMemberIds: existingMembers,

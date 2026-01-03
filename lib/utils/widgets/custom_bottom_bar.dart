@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/features/call_screen/view/call_screen.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
 import 'package:support_chat/features/logout_screen/logout_screen.dart';
+import 'package:support_chat/features/status_screen/view/status_screen.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
@@ -16,7 +17,12 @@ class CustomBottomBar extends StatefulWidget {
 
 class _CustomBottomBarState extends State<CustomBottomBar> {
   int _currentIndex = 0;
-  List<Widget> bodys = [HomeScreen(), CallScreen(), LogoutScreen()];
+  List<Widget> bodys = [
+    HomeScreen(),
+    StatusScreen(),
+    CallScreen(),
+    LogoutScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +66,10 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
                     BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.solidMessage),
                       label: 'Message',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(FontAwesomeIcons.recordVinyl),
+                      label: 'Status',
                     ),
                     BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.phone),

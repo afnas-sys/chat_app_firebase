@@ -407,18 +407,37 @@ class ChatService {
     });
   }
 
-  // Delete Chat
+  // Delete Chat (handles both 1-on-1 and group chats)
   Future<void> deleteChat(String receiverId) async {
     final String currentUserId = _auth.currentUser!.uid;
-    // Check if it's a group chat (this is a heuristic, ideally we pass chatId directly)
-    // But since existing deleteChat takes receiverId, we might need a way to delete group chats.
-    // For now, let's assume receiverId IS the chatId if it doesn't contain underscores (or if we change how we call it).
-    // actually, the current implementation presumes 1-on-1.
-    // Let's keep it as is for 1-on-1 and add deleteGroup separately or handle it if we refactor.
-    // For 1-on-1:
-    final String chatId = getChatId(currentUserId, receiverId);
+    String chatId;
+    bool isGroup = false;
 
     try {
+      // First, try to check if receiverId is actually a group chat ID
+      final chatDoc = await _firestore
+          .collection('chats')
+          .doc(receiverId)
+          .get();
+
+      if (chatDoc.exists) {
+        final data = chatDoc.data();
+        isGroup = data?['isGroup'] == true;
+
+        if (isGroup) {
+          // receiverId is the group chat ID
+          chatId = receiverId;
+        } else {
+          // It's a 1-on-1 chat, use the standard chat ID format
+          chatId = getChatId(currentUserId, receiverId);
+        }
+      } else {
+        // Document doesn't exist with receiverId, assume it's a user ID for 1-on-1
+        chatId = getChatId(currentUserId, receiverId);
+      }
+
+      print('DEBUG: Attempting to delete chat $chatId (isGroup: $isGroup)');
+
       // 1. Delete all messages in the subcollection
       final messages = await _firestore
           .collection('chats')
@@ -427,25 +446,39 @@ class ChatService {
           .get();
 
       if (messages.docs.isNotEmpty) {
-        final batch = _firestore.batch();
+        // Delete messages in batches (Firestore batch limit is 500)
+        final batches = <WriteBatch>[];
+        var currentBatch = _firestore.batch();
+        var operationCount = 0;
+
         for (final doc in messages.docs) {
-          batch.delete(doc.reference);
+          currentBatch.delete(doc.reference);
+          operationCount++;
+
+          if (operationCount == 500) {
+            batches.add(currentBatch);
+            currentBatch = _firestore.batch();
+            operationCount = 0;
+          }
         }
-        await batch.commit();
+
+        if (operationCount > 0) {
+          batches.add(currentBatch);
+        }
+
+        for (final batch in batches) {
+          await batch.commit();
+        }
+
+        print('DEBUG: Deleted ${messages.docs.length} messages from $chatId');
       }
 
       // 2. Delete the chat document itself
       await _firestore.collection('chats').doc(chatId).delete();
       print('DEBUG: Chat $chatId deleted successfully');
     } catch (e) {
-      print('DEBUG: Error deleting chat $chatId: $e');
-      // If it failed, maybe it was a group chat ID passed as receiverId?
-      // Try deleting as if receiverId IS the chatId
-      try {
-        await _firestore.collection('chats').doc(receiverId).delete();
-      } catch (e2) {
-        rethrow;
-      }
+      print('DEBUG: Error deleting chat: $e');
+      rethrow;
     }
   }
 
@@ -541,6 +574,42 @@ class ChatService {
           });
     } catch (e) {
       print('DEBUG: Error adding members to group: $e');
+      rethrow;
+    }
+  }
+
+  // Remove members from group
+  Future<void> removeMembersFromGroup(
+    String groupId,
+    List<String> memberIdsToRemove,
+  ) async {
+    try {
+      await _firestore.collection('chats').doc(groupId).update({
+        'users': FieldValue.arrayRemove(memberIdsToRemove),
+        'participants': FieldValue.arrayRemove(memberIdsToRemove),
+      });
+      print('DEBUG: Removed members $memberIdsToRemove from group $groupId');
+
+      final currentUserId = _auth.currentUser?.uid ?? '';
+      // Add system message
+      await _firestore
+          .collection('chats')
+          .doc(groupId)
+          .collection('messages')
+          .add({
+            'text': 'Members removed from group',
+            'senderId': currentUserId,
+            'createdAt': FieldValue.serverTimestamp(),
+            'status': 'sent',
+            'user': {
+              'id': currentUserId,
+              'firstName': 'System',
+              'profileImage': '',
+            },
+            'isSystemMessage': true,
+          });
+    } catch (e) {
+      print('DEBUG: Error removing members from group: $e');
       rethrow;
     }
   }

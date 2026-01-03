@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:support_chat/firebase_options.dart';
 import 'package:support_chat/providers/auth_provider.dart';
@@ -39,6 +40,17 @@ void main() async {
       print('Initialization error: $e');
     }
   }
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light, // White icons for Android
+      statusBarBrightness: Brightness.dark, // White icons for iOS
+    ),
+  );
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -50,27 +62,29 @@ class MyApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'ChatApp',
-      theme: theme,
-      onGenerateRoute: AppRouter.generateRoute,
-      home: authState.when(
-        data: (user) {
-          if (user != null) {
-            // User is logged in
-            // Return a wrapper that builds the Home/BottomBar screen
-            // or just the screen itself if it's not managed by the router here
-            // but we want to use the router usually.
-            // For simplicity and to keep the router working:
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light, // White icons for Android
+        statusBarBrightness: Brightness.dark, // White icons for iOS
+      ),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'ChatApp',
+        theme: theme,
+        onGenerateRoute: AppRouter.generateRoute,
+        home: authState.when(
+          data: (user) {
+            if (user != null) {
+              return const AuthGate();
+            }
             return const AuthGate();
-          }
-          return const AuthGate(); // Both cases handled inside AuthGate
-        },
-        loading: () =>
-            const Scaffold(body: Center(child: CircularProgressIndicator())),
-        error: (_, __) =>
-            const Scaffold(body: Center(child: Text('Something went wrong'))),
+          },
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (_, __) =>
+              const Scaffold(body: Center(child: Text('Something went wrong'))),
+        ),
       ),
     );
   }

@@ -25,5 +25,10 @@ service cloud.firestore {
     match /{path=**}/messages/{messageId} {
       allow read, write: if request.auth != null;
     }
+
+    /* STATUS */
+    match /status/{statusId} {
+      allow read, write: if request.auth != null;
+    }
   }
 }
