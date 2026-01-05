@@ -2,9 +2,11 @@
 
 import 'dart:developer';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NotificationService {
   final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -89,9 +91,33 @@ class NotificationService {
         print('Foreground message received: ${message.notification?.title}');
       }
 
-      // USER REQUEST: Do not show notification popups while the user is in the app.
-      // We still receive the data here to update the UI (like chat messages),
-      // but we do NOT call _localNotifications.show().
+      // Show local notification even in foreground
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+
+      if (notification != null && android != null && !kIsWeb) {
+        _localNotifications.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              _channelId,
+              _channelName,
+              channelDescription: _channelDesc,
+              importance: Importance.max,
+              priority: Priority.high,
+              icon: android.smallIcon ?? '@mipmap/ic_launcher',
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          payload: message.data.toString(),
+        );
+      }
     });
 
     // 5. Handle background/terminated state when app is opened from notification
@@ -110,9 +136,24 @@ class NotificationService {
     try {
       String? token = await _messaging.getToken();
       if (token != null) {
-        print('=============================================');
-        log('FCM TOKEN: $token');
-        print('=============================================');
+        if (kDebugMode) {
+          log('FCM TOKEN: $token');
+        }
+
+        // Sync token with Firestore if user is logged in
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+                'fcmToken': token,
+                'lastTokenUpdate': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+          if (kDebugMode) {
+            print('FCM Token synced with Firestore for user: ${user.uid}');
+          }
+        }
       }
       return token;
     } catch (e) {

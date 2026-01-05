@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:support_chat/features/call_screen/view/call_screen.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
 import 'package:support_chat/features/logout_screen/logout_screen.dart';
+import 'package:support_chat/features/note_screen/view/note_screen.dart';
 import 'package:support_chat/features/status_screen/view/status_screen.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
@@ -20,7 +20,7 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
   List<Widget> bodys = [
     HomeScreen(),
     StatusScreen(),
-    CallScreen(),
+    NoteScreen(),
     LogoutScreen(),
   ];
 
@@ -72,8 +72,8 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
                       label: 'Status',
                     ),
                     BottomNavigationBarItem(
-                      icon: Icon(FontAwesomeIcons.phone),
-                      label: 'Call',
+                      icon: Icon(FontAwesomeIcons.book),
+                      label: 'Note',
                     ),
                     BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.arrowRightFromBracket),

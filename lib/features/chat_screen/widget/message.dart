@@ -9,6 +9,7 @@ import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
+import 'package:support_chat/features/chat_screen/view/full_screen_image.dart';
 
 class Message extends ConsumerWidget {
   final String receiverId;
@@ -57,6 +58,16 @@ class Message extends ConsumerWidget {
               chatService.sendMessage(receiverId, m, isGroup: isGroup);
             },
             messageOptions: MessageOptions(
+              onTapMedia: (ChatMedia media) {
+                if (media.type == MediaType.image) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => FullScreenImage(imageUrl: media.url),
+                    ),
+                  );
+                }
+              },
               currentUserContainerColor: AppColors.fifthColor,
               containerColor: AppColors.primaryColor,
               textColor: AppColors.eighthColor,
@@ -148,127 +159,174 @@ class Message extends ConsumerWidget {
                       context: context,
                       backgroundColor: AppColors.fourthColor,
                       builder: (context) => SafeArea(
-                        child: Wrap(
-                          children: [
-                            ListTile(
-                              leading: Icon(
-                                Icons.camera_alt,
-                                color: AppColors.fifthColor,
-                              ),
-                              title: const Text(
-                                'Camera',
-                                style: TextStyle(color: AppColors.primaryColor),
-                              ),
-                              onTap: () async {
-                                Navigator.pop(context);
-                                final service = ref.read(
-                                  cloudinaryServiceProvider,
-                                );
-                                final File? file = await service.pickImage(
-                                  ImageSource.camera,
-                                );
-                                if (file != null) {
-                                  final url = await service.uploadFile(file);
-                                  if (url != null) {
-                                    final message = ChatMessage(
-                                      user: currentUser,
-                                      createdAt: DateTime.now(),
-                                      medias: [
-                                        ChatMedia(
-                                          url: url,
-                                          fileName: file.path.split('/').last,
-                                          type: MediaType.image,
-                                        ),
-                                      ],
-                                    );
-                                    chatService.sendMessage(
-                                      receiverId,
-                                      message,
-                                      isGroup: isGroup,
-                                    );
-                                  }
-                                }
-                              },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
                             ),
-                            ListTile(
-                              leading: Icon(
-                                Icons.photo,
-                                color: AppColors.fifthColor,
-                              ),
-                              title: const Text(
-                                'Gallery',
-                                style: TextStyle(color: AppColors.primaryColor),
-                              ),
-                              onTap: () async {
-                                Navigator.pop(context);
-                                final service = ref.read(
-                                  cloudinaryServiceProvider,
-                                );
-                                final File? file = await service.pickImage(
-                                  ImageSource.gallery,
-                                );
-                                if (file != null) {
-                                  final url = await service.uploadFile(file);
-                                  if (url != null) {
-                                    final message = ChatMessage(
-                                      user: currentUser,
-                                      createdAt: DateTime.now(),
-                                      medias: [
-                                        ChatMedia(
-                                          url: url,
-                                          fileName: file.path.split('/').last,
-                                          type: MediaType.image,
-                                        ),
-                                      ],
+                            color: AppColors.fifthColor,
+                          ),
+                          child: Wrap(
+                            runSpacing: 6,
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppColors.fourteenthColor,
+                                ),
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.camera_alt,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                  title: const Text(
+                                    'Camera',
+                                    style: TextStyle(
+                                      color: AppColors.primaryColor,
+                                    ),
+                                  ),
+                                  onTap: () async {
+                                    Navigator.pop(context);
+                                    final service = ref.read(
+                                      cloudinaryServiceProvider,
                                     );
-                                    chatService.sendMessage(
-                                      receiverId,
-                                      message,
-                                      isGroup: isGroup,
+                                    final File? file = await service.pickImage(
+                                      ImageSource.camera,
                                     );
-                                  }
-                                }
-                              },
-                            ),
-                            ListTile(
-                              leading: Icon(
-                                Icons.attach_file,
-                                color: AppColors.fifthColor,
+                                    if (file != null) {
+                                      final url = await service.uploadFile(
+                                        file,
+                                      );
+                                      if (url != null) {
+                                        final message = ChatMessage(
+                                          user: currentUser,
+                                          createdAt: DateTime.now(),
+                                          medias: [
+                                            ChatMedia(
+                                              url: url,
+                                              fileName: file.path
+                                                  .split('/')
+                                                  .last,
+                                              type: MediaType.image,
+                                            ),
+                                          ],
+                                        );
+                                        chatService.sendMessage(
+                                          receiverId,
+                                          message,
+                                          isGroup: isGroup,
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
                               ),
-                              title: const Text(
-                                'File',
-                                style: TextStyle(color: AppColors.primaryColor),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppColors.fourteenthColor,
+                                ),
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.photo,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                  title: const Text(
+                                    'Gallery',
+                                    style: TextStyle(
+                                      color: AppColors.primaryColor,
+                                    ),
+                                  ),
+                                  onTap: () async {
+                                    Navigator.pop(context);
+                                    final service = ref.read(
+                                      cloudinaryServiceProvider,
+                                    );
+                                    final File? file = await service.pickImage(
+                                      ImageSource.gallery,
+                                    );
+                                    if (file != null) {
+                                      final url = await service.uploadFile(
+                                        file,
+                                      );
+                                      if (url != null) {
+                                        final message = ChatMessage(
+                                          user: currentUser,
+                                          createdAt: DateTime.now(),
+                                          medias: [
+                                            ChatMedia(
+                                              url: url,
+                                              fileName: file.path
+                                                  .split('/')
+                                                  .last,
+                                              type: MediaType.image,
+                                            ),
+                                          ],
+                                        );
+                                        chatService.sendMessage(
+                                          receiverId,
+                                          message,
+                                          isGroup: isGroup,
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
                               ),
-                              onTap: () async {
-                                Navigator.pop(context);
-                                final service = ref.read(
-                                  cloudinaryServiceProvider,
-                                );
-                                final File? file = await service.pickFile();
-                                if (file != null) {
-                                  final url = await service.uploadFile(file);
-                                  if (url != null) {
-                                    final message = ChatMessage(
-                                      user: currentUser,
-                                      createdAt: DateTime.now(),
-                                      medias: [
-                                        ChatMedia(
-                                          url: url,
-                                          fileName: file.path.split('/').last,
-                                          type: MediaType.file,
-                                        ),
-                                      ],
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(16),
+                                  color: AppColors.fourteenthColor,
+                                ),
+                                child: ListTile(
+                                  leading: Icon(
+                                    Icons.attach_file,
+                                    color: AppColors.primaryColor,
+                                  ),
+                                  title: const Text(
+                                    'File',
+                                    style: TextStyle(
+                                      color: AppColors.primaryColor,
+                                    ),
+                                  ),
+                                  onTap: () async {
+                                    Navigator.pop(context);
+                                    final service = ref.read(
+                                      cloudinaryServiceProvider,
                                     );
-                                    chatService.sendMessage(
-                                      receiverId,
-                                      message,
-                                      isGroup: isGroup,
-                                    );
-                                  }
-                                }
-                              },
-                            ),
-                          ],
+                                    final File? file = await service.pickFile();
+                                    if (file != null) {
+                                      final url = await service.uploadFile(
+                                        file,
+                                      );
+                                      if (url != null) {
+                                        final message = ChatMessage(
+                                          user: currentUser,
+                                          createdAt: DateTime.now(),
+                                          medias: [
+                                            ChatMedia(
+                                              url: url,
+                                              fileName: file.path
+                                                  .split('/')
+                                                  .last,
+                                              type: MediaType.file,
+                                            ),
+                                          ],
+                                        );
+                                        chatService.sendMessage(
+                                          receiverId,
+                                          message,
+                                          isGroup: isGroup,
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -279,6 +337,7 @@ class Message extends ConsumerWidget {
                   borderSide: BorderSide.none,
                 ),
               ),
+              inputTextStyle: TextStyle(color: AppColors.eighthColor),
             ),
             scrollToBottomOptions: ScrollToBottomOptions(),
           ),

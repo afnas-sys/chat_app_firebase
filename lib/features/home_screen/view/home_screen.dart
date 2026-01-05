@@ -88,6 +88,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ref.read(chatSearchProvider.notifier).state = '';
   }
 
+  ImageProvider _getImageProvider(String? photo) {
+    if (photo == null || photo.isEmpty) {
+      return const AssetImage(AppImage.user1);
+    }
+    if (photo.startsWith('http')) {
+      return NetworkImage(photo);
+    }
+    return AssetImage(photo);
+  }
+
   @override
   Widget build(BuildContext context) {
     // Proactively mark new messages as delivered when the chat list updates
@@ -140,10 +150,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               ),
                               child: CircleAvatar(
                                 radius: 20,
-                                backgroundImage: AssetImage(
-                                  data?['photoURL'] ??
-                                      data?['image'] ??
-                                      AppImage.user1,
+                                backgroundImage: _getImageProvider(
+                                  data?['photoURL'] ?? data?['image'],
                                 ),
                               ),
                             ),
@@ -166,6 +174,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                         ],
                       ),
                       PopupMenuButton<String>(
+                        color: AppColors.fifthColor,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(12)),
+                        ),
                         icon: const Icon(
                           Icons.more_vert,
                           color: AppColors.primaryColor,
@@ -194,13 +206,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ],
                   ),
                   const SizedBox(height: 16),
+
+                  //! SEARCH BAR
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.fourthColor,
                       borderRadius: BorderRadius.circular(30),
                       border: Border.all(color: AppColors.tertiaryColor),
                     ),
-                    //! SEARCH BAR
                     child: CustomTextFormField(
                       controller: _searchController,
                       textColor: AppColors.primaryColor,

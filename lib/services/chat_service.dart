@@ -3,10 +3,18 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Dio _dio = Dio();
+
+  // IMPORTANT: For production, you should use a secure way to manage this key
+  // or use Firebase Cloud Functions (Blaze Plan).
+  // For Spark Plan testing, we send directly from the app.
+  static const String _fcmServerKey =
+      'AAAA62B... (REPLACE WITH YOUR SERVER KEY)';
 
   // Get chat ID by sorting UIDs to ensure consistency between two users
   String getChatId(String userId1, String userId2) {
@@ -97,6 +105,94 @@ class ChatService {
         .doc(chatId)
         .collection('messages')
         .add(messageData);
+
+    // 3. Send Push Notification
+    _triggerNotification(
+      chatId: chatId,
+      receiverId: receiverId,
+      messageText: message.text,
+      senderName: message.user.firstName ?? 'Someone',
+      isGroup: isGroup,
+    );
+  }
+
+  Future<void> _triggerNotification({
+    required String chatId,
+    required String receiverId,
+    required String messageText,
+    required String senderName,
+    required bool isGroup,
+  }) async {
+    try {
+      if (_fcmServerKey.startsWith('AAAA')) {
+        // Only attempt if key looks valid
+        if (isGroup) {
+          // Send to all group members
+          final chatDoc = await _firestore
+              .collection('chats')
+              .doc(chatId)
+              .get();
+          final List<String> userIds = List<String>.from(
+            chatDoc.data()?['users'] ?? [],
+          );
+          final currentUserId = _auth.currentUser?.uid;
+
+          for (String uid in userIds) {
+            if (uid != currentUserId) {
+              _sendToUser(
+                uid,
+                senderName,
+                messageText,
+                chatId,
+                groupName: chatDoc.data()?['groupName'],
+              );
+            }
+          }
+        } else {
+          // Send to 1-on-1 recipient
+          _sendToUser(receiverId, senderName, messageText, chatId);
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Notification trigger error: $e');
+    }
+  }
+
+  Future<void> _sendToUser(
+    String uid,
+    String title,
+    String body,
+    String chatId, {
+    String? groupName,
+  }) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(uid).get();
+      final token = userDoc.data()?['fcmToken'];
+
+      if (token != null) {
+        await _dio.post(
+          'https://fcm.googleapis.com/fcm/send',
+          data: {
+            'to': token,
+            'notification': {
+              'title': groupName ?? title,
+              'body': groupName != null ? '$title: $body' : body,
+              'android_channel_id': 'high_importance_channel',
+              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+            },
+            'data': {'chatId': chatId, 'type': 'chat'},
+          },
+          options: Options(
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'key=$_fcmServerKey',
+            },
+          ),
+        );
+      }
+    } catch (e) {
+      print('DEBUG: Error sending push to $uid: $e');
+    }
   }
 
   // Mark messages as read

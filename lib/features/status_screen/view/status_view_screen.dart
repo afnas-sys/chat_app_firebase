@@ -380,7 +380,12 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                                                   as ImageProvider)
                                       : const AssetImage(AppImage.profile),
                                 ),
-                                title: Text(user['displayName'] ?? 'User'),
+                                title: Text(
+                                  user['displayName'] ?? 'User',
+                                  style: TextStyle(
+                                    color: AppColors.eighthColor,
+                                  ),
+                                ),
                                 subtitle: timeString != null
                                     ? Text(
                                         timeString,

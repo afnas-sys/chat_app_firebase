@@ -114,6 +114,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                     decoration: BoxDecoration(
                       color: Colors.transparent,
                       border: Border.all(color: AppColors.tertiaryColor),
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     child: StatusTile(
                       userName: 'My Status',
@@ -296,6 +297,7 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     border: Border.all(color: AppColors.tertiaryColor),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: statusAsyncValue.when(
                     data: (statuses) {

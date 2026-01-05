@@ -2,10 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:support_chat/providers/auth_provider.dart';
+import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/theme.dart';
+import 'package:support_chat/utils/widgets/custom_bottom_bar.dart';
 import 'package:support_chat/utils/widgets/custom_text_form_field.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -18,6 +21,129 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
   String? _selectedPhoto;
+  bool _isUploading = false;
+
+  ImageProvider _getImageProvider(String? photo) {
+    if (photo == null || photo.isEmpty) {
+      return const AssetImage(AppImage.user1);
+    }
+    if (photo.startsWith('http')) {
+      return NetworkImage(photo);
+    }
+    return AssetImage(photo);
+  }
+
+  Future<void> _pickAndUploadImage(ImageSource source) async {
+    final cloudinaryService = ref.read(cloudinaryServiceProvider);
+    final file = await cloudinaryService.pickImage(source);
+
+    if (file != null) {
+      setState(() => _isUploading = true);
+      try {
+        final url = await cloudinaryService.uploadFile(
+          file,
+          folder: 'profiles',
+        );
+        if (url != null) {
+          setState(() {
+            _selectedPhoto = url;
+            _isUploading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Image uploaded successfully!')),
+          );
+        } else {
+          setState(() => _isUploading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to upload image. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() => _isUploading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  void _showImageSourceActionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.fourthColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+              decoration: BoxDecoration(
+                color: AppColors.fifthColor,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Change Profile Picture',
+                    style: Theme.of(context).textTheme.titleMediumPrimary,
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.fourteenthColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.photo_library,
+                        color: AppColors.primaryColor,
+                      ),
+                      title: Text(
+                        'Gallery',
+                        style: Theme.of(context).textTheme.bodyMediumPrimary,
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickAndUploadImage(ImageSource.gallery);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.fourteenthColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ListTile(
+                      leading: const Icon(
+                        Icons.camera_alt,
+                        color: AppColors.primaryColor,
+                      ),
+                      title: Text(
+                        'Camera',
+                        style: Theme.of(context).textTheme.bodyMediumPrimary,
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _pickAndUploadImage(ImageSource.camera);
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -60,7 +186,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.primaryColor),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CustomBottomBar()),
+          ),
         ),
       ),
       body: Container(
@@ -85,28 +214,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     const SizedBox(height: 20),
                     // Current Profile Pic with selection
-                    Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 50,
-                          backgroundImage: AssetImage(
-                            _selectedPhoto ?? AppImage.user1,
+                    GestureDetector(
+                      onTap: () => _showImageSourceActionSheet(context),
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: AppColors.tertiaryColor,
+                            backgroundImage: _getImageProvider(_selectedPhoto),
+                            child: _isUploading
+                                ? CircularProgressIndicator(
+                                    color: AppColors.fifthColor,
+                                  )
+                                : null,
                           ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: CircleAvatar(
-                            radius: 18,
-                            backgroundColor: AppColors.fifthColor,
-                            child: const Icon(
-                              Icons.edit,
-                              size: 18,
-                              color: Colors.white,
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: CircleAvatar(
+                              radius: 18,
+                              backgroundColor: AppColors.fifthColor,
+                              child: const Icon(
+                                Icons.edit,
+                                size: 18,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 30),
                     Expanded(
