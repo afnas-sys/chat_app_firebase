@@ -8,10 +8,11 @@ import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
-import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
 import 'package:support_chat/utils/router/routes_names.dart';
 import 'package:support_chat/utils/widgets/custom_text_form_field.dart';
+import 'package:support_chat/features/chat_screen/widget/custom_dialog.dart';
+import 'package:support_chat/utils/constants/app_text.dart';
 
 import 'package:flutter/services.dart';
 
@@ -96,6 +97,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return NetworkImage(photo);
     }
     return AssetImage(photo);
+  }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => CustomDialog(
+        title: AppText.logoutDialogTitle,
+        content: AppText.logoutDialogContent,
+        button1Text: AppText.dialogCancel,
+        button2Text: AppText.logoutDialogTitle,
+        button2Icon: FontAwesomeIcons.rightFromBracket,
+        button1Action: () {
+          Navigator.pop(context);
+        },
+        button2Action: () async {
+          // Sign out from Firebase
+          await ref.read(authNotifierProvider.notifier).signOut();
+
+          // Navigate to login screen
+          if (context.mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              RoutesNames.loginScreen,
+              (_) => false,
+            );
+          }
+        },
+      ),
+    );
   }
 
   @override
@@ -188,16 +218,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                               context,
                               RoutesNames.profileScreen,
                             );
+                          } else if (value == 'logout') {
+                            _showLogoutDialog(context);
                           }
                         },
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'profile',
                             child: Row(
                               children: [
-                                Icon(Icons.person, size: 18),
-                                SizedBox(width: 8),
-                                Text('Profile Settings'),
+                                Icon(
+                                  Icons.person,
+                                  size: 18,
+                                  color: AppColors.primaryColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Profile Settings',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMediumPrimary,
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 'logout',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.logout,
+                                  size: 18,
+                                  color: AppColors.primaryColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Logout',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.bodyMediumPrimary,
+                                ),
                               ],
                             ),
                           ),

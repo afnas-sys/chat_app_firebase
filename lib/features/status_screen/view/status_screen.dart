@@ -130,7 +130,19 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                           // myStatuses is sorted descending (Newest first).
                           // To view stories chronologically, we want Oldest first.
                           final myStatusesAsc = myStatuses.reversed.toList();
-                          _viewStatus(context, myStatusesAsc, 0);
+                          _viewStatus(
+                            context,
+                            [
+                              {
+                                'uid': currentUser?.uid,
+                                'statuses': myStatusesAsc,
+                                'username': 'My Status',
+                                'profilePic': currentUser?.photoURL,
+                              },
+                            ],
+                            0,
+                            0,
+                          );
                         } else {
                           _addStatus(context, ref);
                         }
@@ -427,7 +439,12 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                                 initialIndex = 0;
                               }
 
-                              _viewStatus(context, userStatuses, initialIndex);
+                              _viewStatus(
+                                context,
+                                statusList,
+                                index,
+                                initialIndex,
+                              );
                             },
                           );
                         },
@@ -495,14 +512,18 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
 
   void _viewStatus(
     BuildContext context,
-    List<Status> statuses,
-    int initialIndex,
+    List<Map<String, dynamic>> statusCollections,
+    int initialCollectionIndex,
+    int initialStatusIndex,
   ) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            StatusViewScreen(statuses: statuses, initialIndex: initialIndex),
+        builder: (_) => StatusViewScreen(
+          statusCollections: statusCollections,
+          initialCollectionIndex: initialCollectionIndex,
+          initialStatusIndex: initialStatusIndex,
+        ),
       ),
     );
   }

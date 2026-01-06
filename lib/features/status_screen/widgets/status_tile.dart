@@ -41,7 +41,7 @@ class StatusTile extends StatelessWidget {
                 border: Border.all(
                   color: isMe && statusCount == 0
                       ? Colors.transparent
-                      : (isSeen ? Colors.grey : AppColors.primaryColor),
+                      : (isSeen ? Colors.grey : Colors.green),
                   width: 2,
                 ),
               ),

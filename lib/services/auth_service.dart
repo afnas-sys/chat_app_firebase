@@ -189,6 +189,9 @@ class AuthService {
     required String uid,
     String? displayName,
     String? photoUrl,
+    String? phoneNumber,
+    String? about,
+    String? businessInfo,
   }) async {
     try {
       final Map<String, dynamic> updates = {};
@@ -221,6 +224,18 @@ class AuthService {
         updates['photoURL'] = photoUrl;
         updates['image'] = photoUrl; // For compatibility with older widgets
         await currentUser?.updatePhotoURL(photoUrl);
+      }
+
+      if (phoneNumber != null) {
+        updates['phoneNumber'] = phoneNumber;
+      }
+
+      if (about != null) {
+        updates['about'] = about;
+      }
+
+      if (businessInfo != null) {
+        updates['businessInfo'] = businessInfo;
       }
 
       if (updates.isNotEmpty) {

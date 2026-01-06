@@ -6,6 +6,8 @@ class NoteModel {
   final String description;
   final DateTime timestamp;
   final String userId;
+  final bool isPinned;
+  final bool isArchived;
 
   NoteModel({
     required this.id,
@@ -13,6 +15,8 @@ class NoteModel {
     required this.description,
     required this.timestamp,
     required this.userId,
+    this.isPinned = false,
+    this.isArchived = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +26,8 @@ class NoteModel {
       'description': description,
       'timestamp': Timestamp.fromDate(timestamp),
       'userId': userId,
+      'isPinned': isPinned,
+      'isArchived': isArchived,
     };
   }
 
@@ -32,6 +38,8 @@ class NoteModel {
       description: map['description'] ?? '',
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       userId: map['userId'] ?? '',
+      isPinned: map['isPinned'] ?? false,
+      isArchived: map['isArchived'] ?? false,
     );
   }
 
@@ -41,6 +49,8 @@ class NoteModel {
     String? description,
     DateTime? timestamp,
     String? userId,
+    bool? isPinned,
+    bool? isArchived,
   }) {
     return NoteModel(
       id: id ?? this.id,
@@ -48,6 +58,8 @@ class NoteModel {
       description: description ?? this.description,
       timestamp: timestamp ?? this.timestamp,
       userId: userId ?? this.userId,
+      isPinned: isPinned ?? this.isPinned,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 }

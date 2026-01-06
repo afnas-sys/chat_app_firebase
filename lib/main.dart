@@ -12,6 +12,12 @@ import 'package:support_chat/utils/constants/theme.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:support_chat/services/notification_service.dart';
 import 'package:support_chat/services/connectivity_service.dart';
+import 'package:support_chat/providers/reminder_provider.dart';
+import 'package:support_chat/utils/constants/app_colors.dart';
+import 'dart:async';
+
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -69,9 +75,13 @@ class MyApp extends ConsumerWidget {
         statusBarBrightness: Brightness.dark, // White icons for iOS
       ),
       child: MaterialApp(
+        scaffoldMessengerKey: scaffoldMessengerKey,
         debugShowCheckedModeBanner: false,
         title: 'ChatApp',
         theme: theme,
+        builder: (context, child) {
+          return GlobalReminderListener(child: child!);
+        },
         onGenerateRoute: AppRouter.generateRoute,
         home: authState.when(
           data: (user) {
@@ -112,5 +122,86 @@ class AuthGate extends ConsumerWidget {
           const Scaffold(body: Center(child: CircularProgressIndicator())),
       error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
     );
+  }
+}
+
+class GlobalReminderListener extends ConsumerStatefulWidget {
+  final Widget child;
+  const GlobalReminderListener({super.key, required this.child});
+
+  @override
+  ConsumerState<GlobalReminderListener> createState() =>
+      _GlobalReminderListenerState();
+}
+
+class _GlobalReminderListenerState
+    extends ConsumerState<GlobalReminderListener> {
+  Timer? _reminderTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _reminderTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      _checkReminders();
+    });
+  }
+
+  @override
+  void dispose() {
+    _reminderTimer?.cancel();
+    super.dispose();
+  }
+
+  void _checkReminders() async {
+    final auth = ref.read(authStateProvider).value;
+    if (auth == null) return;
+
+    final reminders = await ref
+        .read(reminderServiceProvider)
+        .getActiveReminders()
+        .first;
+    final now = DateTime.now();
+
+    for (final reminder in reminders) {
+      if (reminder.dateTime.isBefore(now) ||
+          reminder.dateTime.isAtSameMomentAs(now)) {
+        await ref.read(reminderServiceProvider).markAsShown(reminder.id);
+
+        scaffoldMessengerKey.currentState?.showMaterialBanner(
+          MaterialBanner(
+            backgroundColor: AppColors.fifthColor,
+            elevation: 10,
+            content: Text(
+              'REMINDER: ${reminder.message}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  scaffoldMessengerKey.currentState
+                      ?.hideCurrentMaterialBanner();
+                },
+                child: const Text(
+                  'DISMISS',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.child;
   }
 }

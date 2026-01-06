@@ -6,4 +6,5 @@ class RoutesNames {
   static const String bottomBar = '/bottomBar';
   static const String profileScreen = '/profile';
   static const String createGroupScreen = '/createGroup';
+  static const String aiChatScreen = '/aiChat';
 }

@@ -325,52 +325,62 @@ class ChatService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final data = doc.data();
+          final String currentUserId = _auth.currentUser!.uid;
+          return snapshot.docs
+              .where((doc) {
+                final data = doc.data();
+                final List<dynamic> deletedFor = data['deletedFor'] ?? [];
+                return !deletedFor.contains(currentUserId);
+              })
+              .map((doc) {
+                final data = doc.data();
 
-            // Map Firestore status to MessageStatus
-            MessageStatus status = MessageStatus.none;
-            if (data['senderId'] == currentUserId) {
-              final statusStr = data['status'] ?? 'sent';
-              if (statusStr == 'seen') {
-                status = MessageStatus.read;
-              } else if (statusStr == 'delivered') {
-                status = MessageStatus.received;
-              } else {
-                status = MessageStatus
-                    .pending; // We'll use pending for sent (single tick)
-              }
-            }
+                // Map Firestore status to MessageStatus
+                MessageStatus status = MessageStatus.none;
+                if (data['senderId'] == currentUserId) {
+                  final statusStr = data['status'] ?? 'sent';
+                  if (statusStr == 'seen') {
+                    status = MessageStatus.read;
+                  } else if (statusStr == 'delivered') {
+                    status = MessageStatus.received;
+                  } else {
+                    status = MessageStatus
+                        .pending; // We'll use pending for sent (single tick)
+                  }
+                }
 
-            return ChatMessage(
-              text: data['text'] ?? '',
-              user: ChatUser(
-                id: data['senderId'],
-                firstName: data['user']['firstName'],
-                profileImage: data['user']['profileImage'],
-              ),
-              createdAt:
-                  (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-              status: status,
-              medias: data['medias'] != null
-                  ? (data['medias'] as List<dynamic>).map((m) {
-                      MediaType mediaType = MediaType.file;
-                      final typeStr = m['type'].toString();
-                      if (typeStr == MediaType.image.toString()) {
-                        mediaType = MediaType.image;
-                      } else if (typeStr == MediaType.video.toString()) {
-                        mediaType = MediaType.video;
-                      }
+                return ChatMessage(
+                  customProperties: {'id': doc.id},
+                  text: data['text'] ?? '',
+                  user: ChatUser(
+                    id: data['senderId'],
+                    firstName: data['user']['firstName'],
+                    profileImage: data['user']['profileImage'],
+                  ),
+                  createdAt:
+                      (data['createdAt'] as Timestamp?)?.toDate() ??
+                      DateTime.now(),
+                  status: status,
+                  medias: data['medias'] != null
+                      ? (data['medias'] as List<dynamic>).map((m) {
+                          MediaType mediaType = MediaType.file;
+                          final typeStr = m['type'].toString();
+                          if (typeStr == MediaType.image.toString()) {
+                            mediaType = MediaType.image;
+                          } else if (typeStr == MediaType.video.toString()) {
+                            mediaType = MediaType.video;
+                          }
 
-                      return ChatMedia(
-                        url: m['url'],
-                        fileName: m['fileName'] ?? '',
-                        type: mediaType,
-                      );
-                    }).toList()
-                  : null,
-            );
-          }).toList();
+                          return ChatMedia(
+                            url: m['url'],
+                            fileName: m['fileName'] ?? '',
+                            type: mediaType,
+                          );
+                        }).toList()
+                      : null,
+                );
+              })
+              .toList();
         });
   }
 
@@ -706,6 +716,116 @@ class ChatService {
           });
     } catch (e) {
       print('DEBUG: Error removing members from group: $e');
+      rethrow;
+    }
+  }
+
+  // Delete message for me
+  Future<void> deleteMessageForMe(
+    String receiverId,
+    String messageId, {
+    bool isGroup = false,
+  }) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
+
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+            'deletedFor': FieldValue.arrayUnion([currentUserId]),
+          });
+      print('DEBUG: Message $messageId deleted for user $currentUserId');
+    } catch (e) {
+      print('DEBUG: Error deleting message for me: $e');
+      rethrow;
+    }
+  }
+
+  // Delete message for everyone
+  Future<void> deleteMessageForEveryone(
+    String receiverId,
+    String messageId, {
+    bool isGroup = false,
+  }) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
+
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+            'text': '🚫 This message was deleted',
+            'isDeleted': true,
+            'medias': null,
+          });
+
+      print('DEBUG: Message $messageId deleted for everyone');
+    } catch (e) {
+      print('DEBUG: Error deleting message for everyone: $e');
+      rethrow;
+    }
+  }
+
+  // Restore message for me (Undo)
+  Future<void> restoreMessageForMe(
+    String receiverId,
+    String messageId,
+    String currentUserId, {
+    bool isGroup = false,
+  }) async {
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
+
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .update({
+            'deletedFor': FieldValue.arrayRemove([currentUserId]),
+          });
+      print('DEBUG: Message $messageId restored for user $currentUserId');
+    } catch (e) {
+      print('DEBUG: Error restoring message for me: $e');
+      rethrow;
+    }
+  }
+
+  // Restore message (for Undo)
+  Future<void> restoreMessage(
+    String receiverId,
+    String messageId,
+    Map<String, dynamic> oldData, {
+    bool isGroup = false,
+  }) async {
+    final String currentUserId = _auth.currentUser!.uid;
+    final String chatId = isGroup
+        ? receiverId
+        : getChatId(currentUserId, receiverId);
+
+    try {
+      await _firestore
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .doc(messageId)
+          .set(oldData);
+      print('DEBUG: Message $messageId restored');
+    } catch (e) {
+      print('DEBUG: Error restoring message: $e');
       rethrow;
     }
   }

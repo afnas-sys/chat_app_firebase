@@ -20,18 +20,24 @@ class CustomTextFormField extends StatelessWidget {
   final TextInputType? keyboardType;
   final bool obscureText;
 
+  final int? maxLines;
+  final int? minLines;
+
   const CustomTextFormField({
     super.key,
     required this.hintText,
     this.hintColor = Colors.grey,
     this.showBorder = false,
-    this.height = 32,
+    this.height = 42,
     this.width = double.infinity,
     this.backgroundColor = Colors.transparent,
     this.textColor = Colors.black,
     this.textSize = 14,
     this.padding = const EdgeInsets.all(8),
-    this.contentPadding = const EdgeInsets.all(1),
+    this.contentPadding = const EdgeInsets.symmetric(
+      horizontal: 12,
+      vertical: 8,
+    ),
     this.prefixWidget,
     this.suffixWidget,
     this.controller,
@@ -39,6 +45,8 @@ class CustomTextFormField extends StatelessWidget {
     this.validator,
     this.keyboardType,
     this.obscureText = false,
+    this.maxLines = 1,
+    this.minLines,
   });
 
   @override
@@ -46,7 +54,7 @@ class CustomTextFormField extends StatelessWidget {
     return Padding(
       padding: padding,
       child: SizedBox(
-        height: height,
+        height: maxLines != null && maxLines! > 1 ? null : height,
         width: width,
         child: TextFormField(
           controller: controller,
@@ -56,6 +64,8 @@ class CustomTextFormField extends StatelessWidget {
           validator: validator,
           keyboardType: keyboardType,
           obscureText: obscureText,
+          maxLines: maxLines,
+          minLines: minLines,
           decoration: InputDecoration(
             filled: true,
             fillColor: backgroundColor,

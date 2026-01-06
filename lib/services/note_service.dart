@@ -21,11 +21,27 @@ class NoteService {
     await docRef.set(note.toMap());
   }
 
+  Future<void> restoreNote(NoteModel note) async {
+    await _notes.doc(note.id).set(note.toMap());
+  }
+
   Future<void> updateNote(String id, String title, String description) async {
     await _notes.doc(id).update({
       'title': title,
       'description': description,
       'timestamp': Timestamp.fromDate(DateTime.now()),
+    });
+  }
+
+  Future<void> togglePin(String id, bool isPinned) async {
+    await _notes.doc(id).update({'isPinned': isPinned});
+  }
+
+  Future<void> toggleArchive(String id, bool isArchived) async {
+    await _notes.doc(id).update({
+      'isArchived': isArchived,
+      // If archiving, we usually unpin it
+      if (isArchived) 'isPinned': false,
     });
   }
 
@@ -37,6 +53,7 @@ class NoteService {
     final userId = _auth.currentUser!.uid;
     return _notes
         .where('userId', isEqualTo: userId)
+        .orderBy('isPinned', descending: true)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {

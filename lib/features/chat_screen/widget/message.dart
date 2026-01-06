@@ -1,15 +1,18 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dash_chat_2/dash_chat_2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:support_chat/main.dart';
 import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/features/chat_screen/view/full_screen_image.dart';
+import 'package:support_chat/services/media_service.dart';
 
 class Message extends ConsumerWidget {
   final String receiverId;
@@ -58,7 +61,7 @@ class Message extends ConsumerWidget {
               chatService.sendMessage(receiverId, m, isGroup: isGroup);
             },
             messageOptions: MessageOptions(
-              onTapMedia: (ChatMedia media) {
+              onTapMedia: (ChatMedia media) async {
                 if (media.type == MediaType.image) {
                   Navigator.push(
                     context,
@@ -66,7 +69,207 @@ class Message extends ConsumerWidget {
                       builder: (_) => FullScreenImage(imageUrl: media.url),
                     ),
                   );
+                } else if (media.type == MediaType.file) {
+                  try {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Downloading ${media.fileName}...'),
+                      ),
+                    );
+
+                    await ref
+                        .read(mediaServiceProvider)
+                        .downloadAndSaveMedia(
+                          media.url,
+                          media.fileName,
+                          isImage: false,
+                        );
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${media.fileName} downloaded to Downloads folder!',
+                          ),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to download: $e')),
+                      );
+                    }
+                  }
                 }
+              },
+              messageTextBuilder: (message, previousMessage, nextMessage) {
+                return SelectableText(
+                  message.text,
+                  style: TextStyle(
+                    color: message.user.id == currentUser.id
+                        ? AppColors.primaryColor
+                        : AppColors.eighthColor,
+                  ),
+                );
+              },
+              onLongPressMessage: (ChatMessage message) {
+                final isMe = message.user.id == currentUser.id;
+                final messageId = message.customProperties?['id'];
+
+                if (messageId == null) return;
+
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: AppColors.fifthColor,
+                  builder: (context) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        ListTile(
+                          leading: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
+                          title: const Text(
+                            'Delete for me',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                          onTap: () async {
+                            Navigator.pop(context);
+                            // Store old data for Undo?
+                            // For "Delete for me", it's just updating "deletedFor" array.
+                            // Undo means removing from that array.
+
+                            try {
+                              await chatService.deleteMessageForMe(
+                                receiverId,
+                                messageId,
+                                isGroup: isGroup,
+                              );
+
+                              if (scaffoldMessengerKey.currentState != null) {
+                                scaffoldMessengerKey.currentState!
+                                    .hideCurrentSnackBar();
+                                scaffoldMessengerKey.currentState!.showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Message deleted'),
+                                    duration: const Duration(minutes: 1),
+                                    backgroundColor: AppColors.fifthColor,
+                                    action: SnackBarAction(
+                                      label: 'Undo',
+                                      textColor: Colors.white,
+                                      onPressed: () async {
+                                        // Restore logic
+                                        // Removing currentUserId from deletedFor
+                                        final currentUserId = ref
+                                            .read(authStateProvider)
+                                            .value!
+                                            .uid;
+                                        await ref
+                                            .read(chatServiceProvider)
+                                            .restoreMessageForMe(
+                                              receiverId,
+                                              messageId,
+                                              currentUserId,
+                                              isGroup: isGroup,
+                                            );
+                                      },
+                                    ),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (scaffoldMessengerKey.currentState != null) {
+                                scaffoldMessengerKey.currentState!.showSnackBar(
+                                  SnackBar(content: Text('Error: $e')),
+                                );
+                              }
+                            }
+                          },
+                        ),
+                        if (isMe)
+                          ListTile(
+                            leading: const Icon(
+                              Icons.delete,
+                              color: Colors.red,
+                            ),
+                            title: const Text(
+                              'Delete for everyone',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            onTap: () async {
+                              Navigator.pop(context);
+
+                              try {
+                                // We need to capture the current document data to restore it
+                                final chatId = isGroup
+                                    ? receiverId
+                                    : ref
+                                          .read(chatServiceProvider)
+                                          .getChatId(
+                                            currentUser.id,
+                                            receiverId,
+                                          );
+                                final doc = await FirebaseFirestore.instance
+                                    .collection('chats')
+                                    .doc(chatId)
+                                    .collection('messages')
+                                    .doc(messageId)
+                                    .get();
+                                final oldData = doc.data();
+
+                                await chatService.deleteMessageForEveryone(
+                                  receiverId,
+                                  messageId,
+                                  isGroup: isGroup,
+                                );
+
+                                if (scaffoldMessengerKey.currentState != null &&
+                                    oldData != null) {
+                                  scaffoldMessengerKey.currentState!
+                                      .hideCurrentSnackBar();
+                                  scaffoldMessengerKey.currentState!
+                                      .showSnackBar(
+                                        SnackBar(
+                                          content: const Text(
+                                            'Message deleted for all',
+                                          ),
+                                          duration: const Duration(minutes: 1),
+                                          backgroundColor: AppColors.fifthColor,
+                                          action: SnackBarAction(
+                                            label: 'Undo',
+                                            textColor: Colors.white,
+                                            onPressed: () async {
+                                              await ref
+                                                  .read(chatServiceProvider)
+                                                  .restoreMessage(
+                                                    receiverId,
+                                                    messageId,
+                                                    oldData,
+                                                    isGroup: isGroup,
+                                                  );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                }
+                              } catch (e) {
+                                if (scaffoldMessengerKey.currentState != null) {
+                                  scaffoldMessengerKey.currentState!
+                                      .showSnackBar(
+                                        SnackBar(content: Text('Error: $e')),
+                                      );
+                                }
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  ),
+                );
               },
               currentUserContainerColor: AppColors.fifthColor,
               containerColor: AppColors.primaryColor,

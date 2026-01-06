@@ -20,6 +20,9 @@ class ProfileScreen extends ConsumerStatefulWidget {
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _aboutController = TextEditingController();
+  final TextEditingController _businessInfoController = TextEditingController();
   String? _selectedPhoto;
   bool _isUploading = false;
 
@@ -152,6 +155,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final userData = ref.read(currentUserDataProvider).value;
       if (userData != null) {
         _nameController.text = userData['displayName'] ?? '';
+        _phoneController.text = userData['phoneNumber'] ?? '';
+        _aboutController.text = userData['about'] ?? '';
+        _businessInfoController.text = userData['businessInfo'] ?? '';
         setState(() {
           _selectedPhoto =
               userData['photoURL'] ?? userData['image'] ?? AppImage.user1;
@@ -279,6 +285,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ),
                               const SizedBox(height: 20),
                               Text(
+                                'Mobile Number (Optional)',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmallPrimary,
+                              ),
+                              const SizedBox(height: 8),
+                              CustomTextFormField(
+                                controller: _phoneController,
+                                hintText: 'Enter your mobile number',
+                                textColor: AppColors.primaryColor,
+                                backgroundColor: AppColors.tertiaryColor
+                                    .withOpacity(0.1),
+                                showBorder: true,
+                                keyboardType: TextInputType.phone,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'About',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmallPrimary,
+                              ),
+                              const SizedBox(height: 8),
+                              CustomTextFormField(
+                                controller: _aboutController,
+                                hintText: 'Tell us about yourself',
+                                textColor: AppColors.primaryColor,
+                                backgroundColor: AppColors.tertiaryColor
+                                    .withOpacity(0.1),
+                                showBorder: true,
+                                maxLines: 3,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Business Info',
+                                style: Theme.of(
+                                  context,
+                                ).textTheme.bodySmallPrimary,
+                              ),
+                              const SizedBox(height: 8),
+                              CustomTextFormField(
+                                controller: _businessInfoController,
+                                hintText: 'Enter business details',
+                                textColor: AppColors.primaryColor,
+                                backgroundColor: AppColors.tertiaryColor
+                                    .withOpacity(0.1),
+                                showBorder: true,
+                                maxLines: 3,
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
                                 'Email',
                                 style: Theme.of(
                                   context,
@@ -354,6 +411,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           uid: userData['uid'],
                                           displayName: _nameController.text,
                                           photoUrl: _selectedPhoto,
+                                          phoneNumber: _phoneController.text,
+                                          about: _aboutController.text,
+                                          businessInfo:
+                                              _businessInfoController.text,
                                         );
                                     if (success) {
                                       ref.invalidate(currentUserDataProvider);

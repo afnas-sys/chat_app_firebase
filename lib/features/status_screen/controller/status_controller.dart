@@ -5,13 +5,18 @@ import 'package:support_chat/features/status_screen/repository/status_repository
 import 'package:support_chat/models/status_model.dart';
 import 'package:support_chat/services/auth_service.dart';
 import 'package:support_chat/services/cloudinary_service.dart';
+import 'package:support_chat/services/chat_service.dart';
+import 'package:support_chat/providers/chat_provider.dart';
+import 'package:dash_chat_2/dash_chat_2.dart';
 
 final statusControllerProvider = Provider((ref) {
   final statusRepository = ref.watch(statusRepositoryProvider);
   final cloudinaryService = ref.watch(cloudinaryServiceProvider);
+  final chatService = ref.watch(chatServiceProvider);
   return StatusController(
     statusRepository: statusRepository,
     cloudinaryService: cloudinaryService,
+    chatService: chatService,
     ref: ref,
   );
 });
@@ -24,11 +29,13 @@ final statusStreamProvider = StreamProvider((ref) {
 class StatusController {
   final StatusRepository statusRepository;
   final CloudinaryService cloudinaryService;
+  final ChatService chatService;
   final Ref ref;
 
   StatusController({
     required this.statusRepository,
     required this.cloudinaryService,
+    required this.chatService,
     required this.ref,
   });
 
@@ -86,6 +93,57 @@ class StatusController {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Status deleted successfully')),
         );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
+    }
+  }
+
+  Future<void> reactToStatus(String statusId, String reaction) async {
+    await statusRepository.reactToStatus(statusId, reaction);
+  }
+
+  Future<void> sendReply({
+    required BuildContext context,
+    required String receiverId,
+    required String text,
+    required String statusImageUrl,
+  }) async {
+    try {
+      final user = AuthService().currentUser;
+      if (user == null) return;
+
+      final userData = await AuthService().getUserData(user.uid);
+
+      final chatUser = ChatUser(
+        id: user.uid,
+        firstName: userData?['displayName'] ?? 'User',
+        profileImage: userData?['photoURL'] ?? userData?['image'] ?? '',
+      );
+
+      final message = ChatMessage(
+        text: "Status Reply: $text",
+        user: chatUser,
+        createdAt: DateTime.now(),
+        medias: [
+          ChatMedia(
+            url: statusImageUrl,
+            fileName: 'status_reply.jpg',
+            type: MediaType.image,
+          ),
+        ],
+      );
+
+      await chatService.sendMessage(receiverId, message);
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Reply sent!')));
       }
     } catch (e) {
       if (context.mounted) {

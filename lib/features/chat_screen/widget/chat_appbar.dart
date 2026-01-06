@@ -10,9 +10,9 @@ import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/app_text.dart';
 import 'package:support_chat/utils/constants/theme.dart';
-import 'package:support_chat/utils/widgets/custom_elevated_button.dart';
 import 'package:support_chat/features/chat_screen/view/add_group_members_screen.dart';
 import 'package:support_chat/features/chat_screen/view/remove_group_members_screen.dart';
+import 'package:support_chat/features/chat_screen/view/user_details_screen.dart';
 import 'package:support_chat/services/cloudinary_service.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -60,33 +60,50 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
           const SizedBox(width: 16),
 
           // user image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: SizedBox(
-              height: 40,
-              width: 40,
-              child: _buildImage(userData['photoURL'] ?? userData['image']),
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UserDetailsScreen(userData: userData),
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: SizedBox(
+                height: 40,
+                width: 40,
+                child: _buildImage(userData['photoURL'] ?? userData['image']),
+              ),
             ),
           ),
           const SizedBox(width: 10),
 
           // user name + status
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  userData['displayName'] ?? userData['user'] ?? 'User',
-                  style: Theme.of(context).textTheme.titleMediumPrimary,
-                  overflow: TextOverflow.ellipsis,
+            child: GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserDetailsScreen(userData: userData),
                 ),
-                Text(
-                  statusText,
-                  style: Theme.of(context).textTheme.bodySmallSecondary,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+              ),
+              behavior: HitTestBehavior.opaque,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    userData['displayName'] ?? userData['user'] ?? 'User',
+                    style: Theme.of(context).textTheme.titleMediumPrimary,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    statusText,
+                    style: Theme.of(context).textTheme.bodySmallSecondary,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -108,7 +125,13 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
                 ),
                 onSelected: (value) {
                   if (value == 'details') {
-                    showDetailSheet(context, userData);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            UserDetailsScreen(userData: userData),
+                      ),
+                    );
                   } else if (value == 'changeImage' &&
                       userData['isGroup'] == true) {
                     _changeGroupImage(context, ref, userData['uid']);
@@ -305,209 +328,6 @@ class ChatAppbar extends ConsumerWidget implements PreferredSizeWidget {
           ),
         ],
       ),
-    );
-  }
-
-  void showDetailSheet(BuildContext context, Map<String, dynamic> userData) {
-    // Format dates
-    String joinedDateStr = 'Unknown';
-    if (userData['createdAt'] != null) {
-      final joinedDate = (userData['createdAt'] as Timestamp).toDate();
-      joinedDateStr = DateFormat('dd MMM yyyy').format(joinedDate);
-    }
-
-    String lastActiveStr = 'Unknown';
-    if (userData['isOnline'] == true) {
-      lastActiveStr = 'Online now';
-    } else if (userData['lastSeen'] != null) {
-      final lastSeen = (userData['lastSeen'] as Timestamp).toDate();
-      lastActiveStr = DateFormat('dd MMM yyyy, hh:mm a').format(lastSeen);
-    }
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: AppColors.primaryColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-              maxWidth: 350,
-            ),
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Header Row
-                    Row(
-                      children: [
-                        Text(
-                          'View User Details',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.titleSmallSecondary,
-                        ),
-                        const Spacer(),
-                        Container(
-                          height: 36,
-                          width: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.eleventhColor),
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: Icon(
-                              FontAwesomeIcons.xmark,
-                              color: AppColors.eighthColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Two-column layout
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        //! 1st column
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'User Name',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                userData['displayName'] ??
-                                    userData['user'] ??
-                                    '',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Mobile Number',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                userData['mobile'] ?? 'Not Available',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Last Active',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                lastActiveStr,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 20),
-
-                        //! 2nd column
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'User ID',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                userData['uid'] ?? '',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Email',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                userData['email'] ?? 'Not Available',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 20),
-                              Text(
-                                'Joined Date',
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodySmallFifth,
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                joinedDateStr,
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.bodyMediumSecondary,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 34),
-                    CustomElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      width: double.infinity,
-                      hasBorder: true,
-                      borderColor: AppColors.twelfthColor,
-                      height: 48,
-                      borderRadius: 30,
-                      backgroundColor: AppColors.primaryColor,
-                      child: Text(
-                        'Back',
-                        style: Theme.of(context).textTheme.bodyMediumSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 

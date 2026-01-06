@@ -2,26 +2,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
-import 'package:support_chat/features/logout_screen/logout_screen.dart';
+import 'package:support_chat/features/ai_chat_screen/view/ai_chat_screen.dart';
 import 'package:support_chat/features/note_screen/view/note_screen.dart';
+import 'package:support_chat/features/status_screen/controller/status_controller.dart';
 import 'package:support_chat/features/status_screen/view/status_screen.dart';
+import 'package:support_chat/providers/auth_provider.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 
-class CustomBottomBar extends StatefulWidget {
+class CustomBottomBar extends ConsumerStatefulWidget {
   const CustomBottomBar({super.key});
 
   @override
-  State<CustomBottomBar> createState() => _CustomBottomBarState();
+  ConsumerState<CustomBottomBar> createState() => _CustomBottomBarState();
 }
 
-class _CustomBottomBarState extends State<CustomBottomBar> {
+class _CustomBottomBarState extends ConsumerState<CustomBottomBar> {
   int _currentIndex = 0;
+
   List<Widget> bodys = [
     HomeScreen(),
     StatusScreen(),
     NoteScreen(),
-    LogoutScreen(),
+    AiChatScreen(),
   ];
 
   @override
@@ -38,9 +41,22 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
           children: [
             Consumer(
               builder: (context, ref, child) {
+                final chats = ref.watch(userChatsProvider).value ?? [];
+                final hasUnread = chats.any(
+                  (chat) => (chat['unreadCount'] as int? ?? 0) > 0,
+                );
+
+                final statuses = ref.watch(statusStreamProvider).value ?? [];
+                final currentUserId = ref.watch(authStateProvider).value?.uid;
+                final hasNewStatus = statuses.any(
+                  (s) =>
+                      s.uid != currentUserId &&
+                      !s.viewers.any((v) => v['uid'] == currentUserId),
+                );
+
                 return BottomNavigationBar(
                   type: BottomNavigationBarType.fixed,
-                  backgroundColor: Color(0XFF5BBC9D),
+                  backgroundColor: const Color(0XFF5BBC9D),
                   elevation: 0,
                   selectedItemColor: AppColors.primaryColor,
                   unselectedItemColor: AppColors.tertiaryColor,
@@ -62,22 +78,32 @@ class _CustomBottomBarState extends State<CustomBottomBar> {
                     }
                     setState(() => _currentIndex = i);
                   },
-                  items: const [
+                  items: [
                     BottomNavigationBarItem(
-                      icon: Icon(FontAwesomeIcons.solidMessage),
+                      icon: Badge(
+                        backgroundColor: Colors.green,
+                        smallSize: 8,
+                        isLabelVisible: hasUnread,
+                        child: const Icon(FontAwesomeIcons.solidMessage),
+                      ),
                       label: 'Message',
                     ),
                     BottomNavigationBarItem(
-                      icon: Icon(FontAwesomeIcons.recordVinyl),
+                      icon: Badge(
+                        backgroundColor: Colors.green,
+                        smallSize: 8,
+                        isLabelVisible: hasNewStatus,
+                        child: const Icon(FontAwesomeIcons.recordVinyl),
+                      ),
                       label: 'Status',
                     ),
-                    BottomNavigationBarItem(
+                    const BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.book),
-                      label: 'Note',
+                      label: 'Notes',
                     ),
-                    BottomNavigationBarItem(
-                      icon: Icon(FontAwesomeIcons.arrowRightFromBracket),
-                      label: 'Log out',
+                    const BottomNavigationBarItem(
+                      icon: Icon(FontAwesomeIcons.robot),
+                      label: 'AI Chat',
                     ),
                   ],
                 );

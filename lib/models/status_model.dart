@@ -12,6 +12,7 @@ class Status {
   final DateTime expiresAt;
   final List<Map<String, dynamic>>
   viewers; // List of {uid: String, timestamp: int}
+  final Map<String, dynamic> reactions; // Map of {uid: reactionEmoji}
 
   Status({
     required this.uid,
@@ -24,6 +25,7 @@ class Status {
     required this.timestamp,
     required this.expiresAt,
     required this.viewers,
+    required this.reactions,
   });
 
   Map<String, dynamic> toMap() {
@@ -38,6 +40,7 @@ class Status {
       'timestamp': timestamp.millisecondsSinceEpoch,
       'expiresAt': expiresAt.millisecondsSinceEpoch,
       'viewers': viewers,
+      'reactions': reactions,
     };
   }
 
@@ -65,6 +68,7 @@ class Status {
       timestamp: DateTime.fromMillisecondsSinceEpoch(map['timestamp']),
       expiresAt: DateTime.fromMillisecondsSinceEpoch(map['expiresAt']),
       viewers: viewersList,
+      reactions: Map<String, dynamic>.from(map['reactions'] ?? {}),
     );
   }
 }

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:support_chat/features/chat_screen/view/chat_screen.dart';
 import 'package:support_chat/features/home_screen/view/profile_screen.dart';
+import 'package:support_chat/features/note_screen/view/reminder_screen.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/constants/theme.dart';
@@ -285,19 +286,18 @@ class ChatTile extends StatelessWidget {
                       );
                     },
                   ),
-                  // IconButton(
-                  //   icon: Icon(
-                  //     FontAwesomeIcons.book,
-                  //     color: AppColors.fifthColor,
-                  //   ),
-                  //   onPressed: () {
-                  //     Navigator.push(
-                  //       context,
-                  //       MaterialPageRoute(builder: (_) => NoteScreen()),
-                  //     );
-                  //     // Add call logic if needed
-                  //   },
-                  // ),
+                  IconButton(
+                    icon: Icon(Icons.alarm, color: AppColors.fifthColor),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ReminderScreen(),
+                        ),
+                      );
+                      // Add call logic if needed
+                    },
+                  ),
                   IconButton(
                     icon: Icon(Icons.info_outline, color: AppColors.fifthColor),
                     onPressed: () {

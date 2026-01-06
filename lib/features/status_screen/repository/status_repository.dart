@@ -45,6 +45,7 @@ class StatusRepository {
         timestamp: now,
         expiresAt: expiresAt,
         viewers: [],
+        reactions: {},
       );
 
       await firestore.collection('status').doc(statusId).set(status.toMap());
@@ -115,6 +116,17 @@ class StatusRepository {
   Future<void> deleteStatus(String statusId) async {
     try {
       await firestore.collection('status').doc(statusId).delete();
+    } catch (e) {
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<void> reactToStatus(String statusId, String reaction) async {
+    try {
+      String uid = auth.currentUser!.uid;
+      await firestore.collection('status').doc(statusId).update({
+        'reactions.$uid': reaction,
+      });
     } catch (e) {
       throw Exception(e.toString());
     }

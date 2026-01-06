@@ -10,13 +10,15 @@ import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/services/auth_service.dart';
 
 class StatusViewScreen extends ConsumerStatefulWidget {
-  final List<Status> statuses;
-  final int initialIndex;
+  final List<Map<String, dynamic>> statusCollections;
+  final int initialCollectionIndex;
+  final int initialStatusIndex;
 
   const StatusViewScreen({
     super.key,
-    required this.statuses,
-    this.initialIndex = 0,
+    required this.statusCollections,
+    this.initialCollectionIndex = 0,
+    this.initialStatusIndex = 0,
   });
 
   @override
@@ -26,13 +28,16 @@ class StatusViewScreen extends ConsumerStatefulWidget {
 class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  late int _currentCollectionIndex;
   late int _currentIndex;
   final AuthService _authService = AuthService();
+  final TextEditingController _replyController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _currentIndex = widget.initialIndex;
+    _currentCollectionIndex = widget.initialCollectionIndex;
+    _currentIndex = widget.initialStatusIndex;
     _animationController =
         AnimationController(vsync: this, duration: const Duration(seconds: 5))
           ..addStatusListener((status) {
@@ -49,7 +54,10 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
     _animationController.reset();
     _animationController.forward();
 
-    final currentStatus = widget.statuses[_currentIndex];
+    final currentCollection = widget.statusCollections[_currentCollectionIndex];
+    final statuses = currentCollection['statuses'] as List<Status>;
+    final currentStatus = statuses[_currentIndex];
+
     // Mark as seen if it's not my own status
     if (currentStatus.uid != _authService.currentUser?.uid) {
       ref.read(statusControllerProvider).markStatusSeen(currentStatus.statusId);
@@ -57,13 +65,25 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
   }
 
   void _nextStatus() {
-    if (_currentIndex < widget.statuses.length - 1) {
+    final currentCollection = widget.statusCollections[_currentCollectionIndex];
+    final statuses = currentCollection['statuses'] as List<Status>;
+
+    if (_currentIndex < statuses.length - 1) {
       setState(() {
         _currentIndex++;
       });
       _startCurrentStatus();
     } else {
-      Navigator.pop(context);
+      // End of this collection, check if there's a next collection
+      if (_currentCollectionIndex < widget.statusCollections.length - 1) {
+        setState(() {
+          _currentCollectionIndex++;
+          _currentIndex = 0;
+        });
+        _startCurrentStatus();
+      } else {
+        Navigator.pop(context);
+      }
     }
   }
 
@@ -74,25 +94,57 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
       });
       _startCurrentStatus();
     } else {
-      // Restart current
-      _startCurrentStatus();
+      // Beginning of this collection, check if there's a previous collection
+      if (_currentCollectionIndex > 0) {
+        setState(() {
+          _currentCollectionIndex--;
+          final prevCollection =
+              widget.statusCollections[_currentCollectionIndex];
+          final prevStatuses = prevCollection['statuses'] as List<Status>;
+          _currentIndex = prevStatuses.length - 1;
+        });
+        _startCurrentStatus();
+      } else {
+        // Restart current
+        _startCurrentStatus();
+      }
     }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _replyController.dispose();
     super.dispose();
+  }
+
+  void _sendReply(String text, Status status) {
+    ref
+        .read(statusControllerProvider)
+        .sendReply(
+          context: context,
+          receiverId: status.uid,
+          text: text,
+          statusImageUrl: status.imageUrl,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
     // Safety check
-    if (widget.statuses.isEmpty || _currentIndex >= widget.statuses.length) {
+    if (widget.statusCollections.isEmpty ||
+        _currentCollectionIndex >= widget.statusCollections.length) {
       return const SizedBox();
     }
 
-    final currentStatus = widget.statuses[_currentIndex];
+    final currentCollection = widget.statusCollections[_currentCollectionIndex];
+    final statuses = currentCollection['statuses'] as List<Status>;
+
+    if (statuses.isEmpty || _currentIndex >= statuses.length) {
+      return const SizedBox();
+    }
+
+    final currentStatus = statuses[_currentIndex];
     final bool isMe = currentStatus.uid == _authService.currentUser?.uid;
 
     return Scaffold(
@@ -135,7 +187,7 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                 left: 10,
                 right: 10,
                 child: Row(
-                  children: List.generate(widget.statuses.length, (index) {
+                  children: List.generate(statuses.length, (index) {
                     return Expanded(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 2.0),
@@ -257,6 +309,140 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                   ),
                 ),
 
+              // Current Reactions display
+              if (currentStatus.reactions.isNotEmpty)
+                Positioned(
+                  bottom: isMe ? 60 : 100,
+                  right: 20,
+                  child: GestureDetector(
+                    onTap: () {
+                      if (isMe) _showReactionsList(currentStatus.reactions);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ...currentStatus.reactions.values
+                              .toSet()
+                              .take(3)
+                              .map(
+                                (e) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 2,
+                                  ),
+                                  child: Text(
+                                    e.toString(),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
+                                ),
+                              ),
+                          Text(
+                            ' ${currentStatus.reactions.length}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Reactions Bar - Only for others
+              if (!isMe)
+                Positioned(
+                  bottom: 80,
+                  left: 20,
+                  right: 20,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _reactionIcon('❤️', currentStatus),
+                        _reactionIcon('😂', currentStatus),
+                        _reactionIcon('😮', currentStatus),
+                        _reactionIcon('😢', currentStatus),
+                        _reactionIcon('🙏', currentStatus),
+                        _reactionIcon('👍', currentStatus),
+                      ],
+                    ),
+                  ),
+                ),
+
+              // Reply Field - Only for others
+              if (!isMe)
+                Positioned(
+                  bottom: 20,
+                  left: 10,
+                  right: 10,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black45,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Colors.white24),
+                          ),
+                          child: TextField(
+                            controller: _replyController,
+                            style: const TextStyle(color: Colors.white),
+                            onTap: () => _animationController.stop(),
+                            onSubmitted: (val) {
+                              if (val.isNotEmpty) {
+                                _sendReply(val, currentStatus);
+                                _replyController.clear();
+                              }
+                              _animationController.forward();
+                              FocusScope.of(context).unfocus();
+                            },
+                            decoration: const InputDecoration(
+                              hintText: 'Reply...',
+                              hintStyle: TextStyle(color: Colors.white60),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      CircleAvatar(
+                        backgroundColor: AppColors.primaryColor,
+                        child: IconButton(
+                          icon: const Icon(Icons.send, color: Colors.black),
+                          onPressed: () {
+                            if (_replyController.text.isNotEmpty) {
+                              _sendReply(_replyController.text, currentStatus);
+                              _replyController.clear();
+                              _animationController.forward();
+                              FocusScope.of(context).unfocus();
+                            }
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               // Bottom Alert (Viewers) - Only for Owner
               if (isMe)
                 Positioned(
@@ -291,8 +477,19 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
     );
   }
 
-  void _showViewersList() {
-    // Pause animation when showing bottom sheet
+  Widget _reactionIcon(String emoji, Status status) {
+    return GestureDetector(
+      onTap: () {
+        ref
+            .read(statusControllerProvider)
+            .reactToStatus(status.statusId, emoji);
+        _sendReply(emoji, status);
+      },
+      child: Text(emoji, style: const TextStyle(fontSize: 28)),
+    );
+  }
+
+  void _showReactionsList(Map<String, dynamic> reactions) {
     _animationController.stop();
     showModalBottomSheet(
       context: context,
@@ -320,16 +517,93 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
               ),
               const SizedBox(height: 20),
               Text(
-                'Viewed by ${widget.statuses[_currentIndex].viewers.length}',
+                'Reactions (${reactions.length})',
                 style: Theme.of(context).textTheme.titleSmallSecondary,
               ),
               const Divider(),
               Expanded(
-                child: widget.statuses[_currentIndex].viewers.isEmpty
+                child: ListView.builder(
+                  itemCount: reactions.length,
+                  itemBuilder: (context, index) {
+                    String uid = reactions.keys.elementAt(index);
+                    String emoji = reactions[uid];
+                    return FutureBuilder(
+                      future: AuthService().getUserData(uid),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) return const SizedBox();
+                        var user = snapshot.data as Map<String, dynamic>;
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundImage: user['photoURL'] != null
+                                ? NetworkImage(user['photoURL'])
+                                : const AssetImage(AppImage.profile)
+                                      as ImageProvider,
+                          ),
+                          title: Text(
+                            user['displayName'] ?? 'User',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleSmallSecondary,
+                          ),
+                          trailing: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ).then((_) => _animationController.forward());
+  }
+
+  void _showViewersList() {
+    // Pause animation when showing bottom sheet
+    _animationController.stop();
+
+    final currentCollection = widget.statusCollections[_currentCollectionIndex];
+    final statuses = currentCollection['statuses'] as List<Status>;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(20),
+              topRight: Radius.circular(20),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Viewed by ${statuses[_currentIndex].viewers.length}',
+                style: Theme.of(context).textTheme.titleSmallSecondary,
+              ),
+              const Divider(),
+              Expanded(
+                child: statuses[_currentIndex].viewers.isEmpty
                     ? const Center(child: Text('No views yet'))
                     : ListView.builder(
-                        itemCount:
-                            widget.statuses[_currentIndex].viewers.length,
+                        itemCount: statuses[_currentIndex].viewers.length,
                         itemBuilder: (context, index) {
                           // In a real app, we would fetch user details from these UIDs
                           // For now, we'll just show the UID (or FutureBuilder if we had a method)
@@ -342,7 +616,7 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                           // Ideally we should update the Status model to include basic viewer info or fetch it.
                           // Let's use FutureBuilder.
                           var viewerData =
-                              widget.statuses[_currentIndex].viewers[index];
+                              statuses[_currentIndex].viewers[index];
                           // Since Status model enforces List<Map<String, dynamic>>, we don't need to check for String
                           String viewerUid = viewerData['uid'];
                           int? viewerTimestamp = viewerData['timestamp'];
