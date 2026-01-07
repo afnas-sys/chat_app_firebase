@@ -15,25 +15,7 @@ class UserDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Format dates
-    String joinedDateStr = 'Unknown';
-    if (userData['createdAt'] != null) {
-      final joinedDate = (userData['createdAt'] is Timestamp)
-          ? (userData['createdAt'] as Timestamp).toDate()
-          : (userData['createdAt'] as DateTime);
-      joinedDateStr = DateFormat('dd MMM yyyy').format(joinedDate);
-    }
-
-    String lastActiveStr = 'Unknown';
-    if (userData['isOnline'] == true || userData['isOnline'] == 'Online') {
-      lastActiveStr = 'Online now';
-    } else if (userData['lastSeen'] != null) {
-      final lastSeen = (userData['lastSeen'] is Timestamp)
-          ? (userData['lastSeen'] as Timestamp).toDate()
-          : (userData['lastSeen'] as DateTime);
-      lastActiveStr = DateFormat('dd MMM yyyy, hh:mm a').format(lastSeen);
-    }
-
+    final userId = userData['uid'];
     final isGroup = userData['isGroup'] == true;
 
     return Scaffold(
@@ -60,103 +42,155 @@ class UserDetailsScreen extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                // Hero Profile Image
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.fifthColor.withOpacity(0.5),
-                        width: 2,
-                      ),
-                    ),
-                    child: CircleAvatar(
-                      radius: 80,
-                      backgroundColor: AppColors.tertiaryColor,
-                      backgroundImage: _getImageProvider(
-                        userData['photoURL'] ?? userData['image'],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  userData['displayName'] ?? userData['user'] ?? 'User',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.primaryColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isGroup ? 'Group' : (userData['email'] ?? ''),
-                  style: Theme.of(context).textTheme.bodyMediumFourth,
-                ),
-                const SizedBox(height: 30),
+          child: StreamBuilder<DocumentSnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: AppColors.fifthColor),
+                );
+              }
 
-                // Details Section
-                GlassContainer(
-                  child: Column(
-                    children: [
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.info_outline,
-                        label: 'About',
-                        value:
-                            userData['about'] ??
-                            'Hey there! I am using Support Chat.',
-                      ),
-                      const Divider(color: Colors.white10),
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.phone_android,
-                        label: 'Mobile Number',
-                        value:
-                            userData['phoneNumber'] ??
-                            userData['mobile'] ??
-                            'Not Available',
-                      ),
-                      const Divider(color: Colors.white10),
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.business_center_outlined,
-                        label: 'Business Info',
-                        value:
-                            userData['businessInfo'] ??
-                            'No business info shared.',
-                      ),
-                      const Divider(color: Colors.white10),
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Joined Date',
-                        value: joinedDateStr,
-                      ),
-                      const Divider(color: Colors.white10),
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.access_time,
-                        label: 'Last Active',
-                        value: lastActiveStr,
-                      ),
-                      const Divider(color: Colors.white10),
-                      _buildDetailItem(
-                        context,
-                        icon: Icons.fingerprint,
-                        label: 'User ID',
-                        value: userData['uid'] ?? 'N/A',
-                      ),
-                    ],
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    'Error loading user data',
+                    style: Theme.of(context).textTheme.bodyMediumPrimary,
                   ),
+                );
+              }
+
+              // Get fresh user data from Firestore
+              final freshUserData =
+                  snapshot.data?.data() as Map<String, dynamic>? ?? userData;
+
+              // Format dates
+              String joinedDateStr = 'Unknown';
+              if (freshUserData['createdAt'] != null) {
+                final joinedDate = (freshUserData['createdAt'] is Timestamp)
+                    ? (freshUserData['createdAt'] as Timestamp).toDate()
+                    : (freshUserData['createdAt'] as DateTime);
+                joinedDateStr = DateFormat('dd MMM yyyy').format(joinedDate);
+              }
+
+              String lastActiveStr = 'Unknown';
+              if (freshUserData['isOnline'] == true ||
+                  freshUserData['isOnline'] == 'Online') {
+                lastActiveStr = 'Online now';
+              } else if (freshUserData['lastSeen'] != null) {
+                final lastSeen = (freshUserData['lastSeen'] is Timestamp)
+                    ? (freshUserData['lastSeen'] as Timestamp).toDate()
+                    : (freshUserData['lastSeen'] as DateTime);
+                lastActiveStr = DateFormat(
+                  'dd MMM yyyy, hh:mm a',
+                ).format(lastSeen);
+              }
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    // Hero Profile Image
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.fifthColor.withOpacity(0.5),
+                            width: 2,
+                          ),
+                        ),
+                        child: CircleAvatar(
+                          radius: 80,
+                          backgroundColor: AppColors.tertiaryColor,
+                          backgroundImage: _getImageProvider(
+                            freshUserData['photoURL'] ?? freshUserData['image'],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      freshUserData['displayName'] ??
+                          freshUserData['user'] ??
+                          'User',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            color: AppColors.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isGroup ? 'Group' : (freshUserData['email'] ?? ''),
+                      style: Theme.of(context).textTheme.bodyMediumFourth,
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Details Section
+                    GlassContainer(
+                      child: Column(
+                        children: [
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.info_outline,
+                            label: 'About',
+                            value:
+                                freshUserData['about'] ??
+                                'Hey there! I am using Support Chat.',
+                          ),
+                          const Divider(color: Colors.white10),
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.phone_android,
+                            label: 'Mobile Number',
+                            value:
+                                freshUserData['phoneNumber'] ??
+                                freshUserData['mobile'] ??
+                                'Not Available',
+                          ),
+                          const Divider(color: Colors.white10),
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.business_center_outlined,
+                            label: 'Business Info',
+                            value:
+                                freshUserData['businessInfo'] ??
+                                'No business info shared.',
+                          ),
+                          const Divider(color: Colors.white10),
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.calendar_today_outlined,
+                            label: 'Joined Date',
+                            value: joinedDateStr,
+                          ),
+                          const Divider(color: Colors.white10),
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.access_time,
+                            label: 'Last Active',
+                            value: lastActiveStr,
+                          ),
+                          const Divider(color: Colors.white10),
+                          _buildDetailItem(
+                            context,
+                            icon: Icons.fingerprint,
+                            label: 'User ID',
+                            value: freshUserData['uid'] ?? 'N/A',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
-                const SizedBox(height: 40),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -207,9 +241,18 @@ class UserDetailsScreen extends StatelessWidget {
     if (photo == null || photo.isEmpty) {
       return const AssetImage(AppImage.user1);
     }
-    if (photo.startsWith('http')) {
-      return NetworkImage(photo);
+
+    final photoStr = photo.toString();
+
+    if (photoStr.startsWith('http')) {
+      return NetworkImage(photoStr);
     }
-    return AssetImage(photo);
+
+    // Safety: strip file:/// if present in asset path strings
+    final assetPath = photoStr.startsWith('file:///')
+        ? photoStr.replaceFirst('file:///', '')
+        : photoStr;
+
+    return AssetImage(assetPath);
   }
 }

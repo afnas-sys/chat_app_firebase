@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:support_chat/config/api_keys.dart';
 
 final geminiServiceProvider = Provider<AiService>((ref) {
   return AiService();
@@ -10,8 +11,8 @@ final geminiServiceProvider = Provider<AiService>((ref) {
 class AiService {
   final Dio _dio = Dio();
 
-  // 🔑 API KEYS
-  static const String _geminiKey = 'AIzaSyBHHiDQ549Mp9P2HuZog323GR9p_rLFO5Q';
+  // 🔑 API KEY - Now imported from config file
+  static const String _geminiKey = ApiKeys.geminiApiKey;
 
   // 📝 SYSTEM PROMPT (Context about the app)
   static const String _systemPrompt = """

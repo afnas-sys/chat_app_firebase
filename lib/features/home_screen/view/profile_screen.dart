@@ -41,12 +41,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final file = await cloudinaryService.pickImage(source);
 
     if (file != null) {
+      if (!mounted) return;
       setState(() => _isUploading = true);
       try {
         final url = await cloudinaryService.uploadFile(
           file,
           folder: 'profiles',
         );
+        if (!mounted) return;
+
         if (url != null) {
           setState(() {
             _selectedPhoto = url;
@@ -65,6 +68,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           );
         }
       } catch (e) {
+        if (!mounted) return;
         setState(() => _isUploading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -416,6 +420,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                           businessInfo:
                                               _businessInfoController.text,
                                         );
+
+                                    // Check if widget is still mounted before using ref or context
+                                    if (!mounted) return;
+
                                     if (success) {
                                       ref.invalidate(currentUserDataProvider);
                                       ScaffoldMessenger.of(

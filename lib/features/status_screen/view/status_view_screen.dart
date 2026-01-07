@@ -244,7 +244,12 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                           if (profilePicUrl.startsWith('http')) {
                             backgroundImage = NetworkImage(profilePicUrl);
                           } else {
-                            backgroundImage = AssetImage(profilePicUrl);
+                            // Strip any file:/// prefix if somehow present for assets
+                            final assetPath =
+                                profilePicUrl.startsWith('file:///')
+                                ? profilePicUrl.replaceFirst('file:///', '')
+                                : profilePicUrl;
+                            backgroundImage = AssetImage(assetPath);
                           }
                         } else {
                           backgroundImage = const AssetImage(AppImage.profile);
@@ -534,8 +539,15 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                         var user = snapshot.data as Map<String, dynamic>;
                         return ListTile(
                           leading: CircleAvatar(
-                            backgroundImage: user['photoURL'] != null
-                                ? NetworkImage(user['photoURL'])
+                            backgroundImage:
+                                (user['photoURL'] != null &&
+                                    user['photoURL'].toString().isNotEmpty)
+                                ? (user['photoURL'].toString().startsWith(
+                                        'http',
+                                      )
+                                      ? NetworkImage(user['photoURL'])
+                                      : AssetImage(user['photoURL'])
+                                            as ImageProvider)
                                 : const AssetImage(AppImage.profile)
                                       as ImageProvider,
                           ),

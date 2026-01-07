@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:support_chat/features/chat_screen/view/chat_screen.dart';
-import 'package:support_chat/features/home_screen/view/profile_screen.dart';
+import 'package:support_chat/features/chat_screen/view/user_details_screen.dart';
 import 'package:support_chat/features/note_screen/view/reminder_screen.dart';
 import 'package:support_chat/utils/constants/app_colors.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
@@ -303,7 +303,9 @@ class ChatTile extends StatelessWidget {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => ProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => UserDetailsScreen(userData: userData),
+                        ),
                       );
                       // Add info logic if needed
                     },

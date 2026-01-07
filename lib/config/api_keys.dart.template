@@ -1,0 +1,20 @@
+// 📋 API Keys Template
+// 
+// INSTRUCTIONS:
+// 1. Copy this file and rename it to 'api_keys.dart' (remove .template)
+// 2. Replace 'YOUR_NEW_API_KEY_HERE' with your actual Gemini API key
+// 3. NEVER commit the actual api_keys.dart file to Git (it's in .gitignore)
+//
+// To get a Gemini API key:
+// 1. Visit: https://aistudio.google.com/app/apikey
+// 2. Sign in with your Google account
+// 3. Click "Create API Key"
+// 4. Copy and paste it below
+
+class ApiKeys {
+  // 🔑 Gemini API Key - Get from https://aistudio.google.com/app/apikey
+  static const String geminiApiKey = 'YOUR_NEW_API_KEY_HERE';
+  
+  // Add other API keys here if needed in the future
+  // static const String cloudinaryApiKey = 'your_cloudinary_key';
+}

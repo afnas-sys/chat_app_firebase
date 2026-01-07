@@ -185,9 +185,22 @@ class _StatusScreenState extends ConsumerState<StatusScreen> {
                                                   return ListTile(
                                                     leading: CircleAvatar(
                                                       backgroundImage:
-                                                          NetworkImage(
-                                                            status.imageUrl,
-                                                          ),
+                                                          status.imageUrl
+                                                              .startsWith(
+                                                                'http',
+                                                              )
+                                                          ? NetworkImage(
+                                                              status.imageUrl,
+                                                            )
+                                                          : AssetImage(
+                                                                  status
+                                                                      .imageUrl
+                                                                      .replaceFirst(
+                                                                        'file:///',
+                                                                        '',
+                                                                      ),
+                                                                )
+                                                                as ImageProvider,
                                                     ),
                                                     title: Text(
                                                       status.caption.isNotEmpty

@@ -235,16 +235,28 @@ class _NoteScreenState extends ConsumerState<NoteScreen> {
                                       userData?['image'] ??
                                       userData?['photoURL'];
                                   if (photoUrl != null && photoUrl.isNotEmpty) {
-                                    return Image.network(
-                                      photoUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Image.asset(
-                                                AppImage.profile,
-                                                fit: BoxFit.cover,
-                                              ),
-                                    );
+                                    if (photoUrl.toString().startsWith(
+                                      'http',
+                                    )) {
+                                      return Image.network(
+                                        photoUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Image.asset(
+                                                  AppImage.profile,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                      );
+                                    } else {
+                                      return Image.asset(
+                                        photoUrl.toString().replaceFirst(
+                                          'file:///',
+                                          '',
+                                        ),
+                                        fit: BoxFit.cover,
+                                      );
+                                    }
                                   }
                                   return Image.asset(
                                     AppImage.profile,
