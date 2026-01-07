@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:support_chat/features/expanse_manager/expanse_manager.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
 import 'package:support_chat/features/ai_chat_screen/view/ai_chat_screen.dart';
 import 'package:support_chat/features/note_screen/view/note_screen.dart';
@@ -24,6 +25,7 @@ class _CustomBottomBarState extends ConsumerState<CustomBottomBar> {
     HomeScreen(),
     StatusScreen(),
     NoteScreen(),
+    ExpanseManager(),
     AiChatScreen(),
   ];
 
@@ -100,6 +102,10 @@ class _CustomBottomBarState extends ConsumerState<CustomBottomBar> {
                     const BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.book),
                       label: 'Notes',
+                    ),
+                    BottomNavigationBarItem(
+                      icon: Icon(FontAwesomeIcons.moneyCheckDollar),
+                      label: 'Expanse',
                     ),
                     const BottomNavigationBarItem(
                       icon: Icon(FontAwesomeIcons.robot),

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:page_transition/page_transition.dart';
 import 'package:support_chat/features/home_screen/view/home_screen.dart';
-import 'package:support_chat/features/login_screen/login_screen.dart';
-import 'package:support_chat/features/register_screen/register_screen.dart';
-import 'package:support_chat/features/forgot_password_screen/forgot_password_screen.dart';
+import 'package:support_chat/features/auth/login_screen/login_screen.dart';
+import 'package:support_chat/features/auth/register_screen/register_screen.dart';
+import 'package:support_chat/features/auth/forgot_password_screen/forgot_password_screen.dart';
 import 'package:support_chat/features/home_screen/view/profile_screen.dart';
 import 'package:support_chat/features/ai_chat_screen/view/ai_chat_screen.dart';
 import 'package:support_chat/features/group_screen.dart/create_group_screen.dart';
