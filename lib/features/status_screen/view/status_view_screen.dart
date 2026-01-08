@@ -178,6 +178,23 @@ class _StatusViewScreenState extends ConsumerState<StatusViewScreen>
                       ),
                     );
                   },
+                  errorBuilder: (context, error, stackTrace) => const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                        SizedBox(height: 10),
+                        Text(
+                          'Image not found',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
 

@@ -18,6 +18,7 @@ import 'dart:async';
 
 final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
     GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -34,7 +35,7 @@ void main() async {
 
     // Initialize Notification Service
     final notificationService = NotificationService();
-    await notificationService.init();
+    await notificationService.init(navigatorKey);
 
     // Initialize Connectivity Service (Online/Offline Status)
     ConnectivityService().initialize();
@@ -75,6 +76,7 @@ class MyApp extends ConsumerWidget {
         statusBarBrightness: Brightness.dark, // White icons for iOS
       ),
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         scaffoldMessengerKey: scaffoldMessengerKey,
         debugShowCheckedModeBanner: false,
         title: 'ChatApp',
@@ -171,31 +173,36 @@ class _GlobalReminderListenerState
           reminder.dateTime.isAtSameMomentAs(now)) {
         await ref.read(reminderServiceProvider).markAsShown(reminder.id);
 
-        scaffoldMessengerKey.currentState?.showMaterialBanner(
-          MaterialBanner(
-            backgroundColor: AppColors.fifthColor,
-            elevation: 10,
-            content: Text(
-              'REMINDER: ${reminder.message}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  scaffoldMessengerKey.currentState
-                      ?.hideCurrentMaterialBanner();
-                },
-                child: const Text(
-                  'DISMISS',
-                  style: TextStyle(color: Colors.white),
+        if (mounted) {
+          scaffoldMessengerKey.currentState?.hideCurrentMaterialBanner();
+          scaffoldMessengerKey.currentState?.showMaterialBanner(
+            MaterialBanner(
+              backgroundColor: AppColors.fifthColor,
+              elevation: 10,
+              content: Text(
+                'REMINDER: ${reminder.message}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-          ),
-        );
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    scaffoldMessengerKey.currentState
+                        ?.hideCurrentMaterialBanner();
+                  },
+                  child: const Text(
+                    'DISMISS',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        // Small delay to ensure if multiple reminders are due, the user notices them
+        await Future.delayed(const Duration(seconds: 1));
       }
     }
   }

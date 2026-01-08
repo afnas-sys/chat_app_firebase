@@ -7,6 +7,8 @@ import 'package:support_chat/features/chat_screen/widget/message.dart';
 import 'package:support_chat/providers/chat_provider.dart';
 import 'package:support_chat/utils/constants/app_image.dart';
 import 'package:support_chat/utils/widgets/glass_container.dart';
+import 'package:support_chat/services/notification_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> userData;
@@ -20,6 +22,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Track this chat as active to suppress local notifications
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    final receiverId = widget.userData['uid'];
+    final isGroup = widget.userData['isGroup'] == true;
+
+    if (currentUserId != null && receiverId != null) {
+      final chatService = ref.read(chatServiceProvider);
+      NotificationService.activeChatId = isGroup
+          ? receiverId
+          : chatService.getChatId(currentUserId, receiverId);
+    }
+
     // Mark messages as read when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final receiverId = widget.userData['uid'];
@@ -30,6 +45,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       chatService.markAsDelivered();
     });
+  }
+
+  @override
+  void dispose() {
+    NotificationService.activeChatId = null;
+    super.dispose();
   }
 
   @override

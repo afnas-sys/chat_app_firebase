@@ -124,7 +124,7 @@ class ChatService {
     required bool isGroup,
   }) async {
     try {
-      if (_fcmServerKey.startsWith('AAAA')) {
+      if (_fcmServerKey.startsWith('AAAA') || _fcmServerKey.length > 20) {
         // Only attempt if key looks valid
         if (isGroup) {
           // Send to all group members
@@ -144,13 +144,22 @@ class ChatService {
                 senderName,
                 messageText,
                 chatId,
+                receiverId: receiverId,
+                isGroup: isGroup,
                 groupName: chatDoc.data()?['groupName'],
               );
             }
           }
         } else {
           // Send to 1-on-1 recipient
-          _sendToUser(receiverId, senderName, messageText, chatId);
+          _sendToUser(
+            receiverId,
+            senderName,
+            messageText,
+            chatId,
+            receiverId: receiverId,
+            isGroup: isGroup,
+          );
         }
       }
     } catch (e) {
@@ -163,6 +172,8 @@ class ChatService {
     String title,
     String body,
     String chatId, {
+    required String receiverId,
+    required bool isGroup,
     String? groupName,
   }) async {
     try {
@@ -170,7 +181,7 @@ class ChatService {
       final token = userDoc.data()?['fcmToken'];
 
       if (token != null) {
-        await _dio.post(
+        final response = await _dio.post(
           'https://fcm.googleapis.com/fcm/send',
           data: {
             'to': token,
@@ -180,7 +191,14 @@ class ChatService {
               'android_channel_id': 'high_importance_channel',
               'click_action': 'FLUTTER_NOTIFICATION_CLICK',
             },
-            'data': {'chatId': chatId, 'type': 'chat'},
+            'data': {
+              'chatId': chatId,
+              'type': 'chat',
+              'receiverId': receiverId,
+              'isGroup': isGroup.toString(),
+              'displayName': title,
+              'body': groupName != null ? '$title: $body' : body,
+            },
           },
           options: Options(
             headers: {
@@ -189,9 +207,18 @@ class ChatService {
             },
           ),
         );
+        print(
+          'DEBUG: FCM Response for $uid: ${response.statusCode} - ${response.data}',
+        );
       }
     } catch (e) {
-      print('DEBUG: Error sending push to $uid: $e');
+      if (e is DioException) {
+        print(
+          'DEBUG: FCM DioError: ${e.response?.statusCode} - ${e.response?.data}',
+        );
+      } else {
+        print('DEBUG: Error sending push to $uid: $e');
+      }
     }
   }
 
@@ -266,8 +293,16 @@ class ChatService {
         'DEBUG: Successfully marked ${messagesSnapshot.docs.length} messages as delivered',
       );
     } catch (e) {
-      // If you see an error here, check if you need to create a Collection Group index in Firebase Console
-      print('DEBUG: [UID: $currentUserId] markAsDelivered error: $e');
+      if (e.toString().contains('requires an index')) {
+        print(
+          'DEBUG: Firestore Index Required for Collection Group "messages".',
+        );
+        print(
+          'To fix: Click the link in the console logs or run: firebase deploy --only firestore:indexes',
+        );
+      } else {
+        print('DEBUG: [UID: $currentUserId] markAsDelivered error: $e');
+      }
     }
   }
 
